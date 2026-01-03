@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
+import { getAuthToken } from "@/lib/api"
 
 const publicRoutes = ["/login", "/register"]
 
@@ -13,7 +14,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [isChecking, setIsChecking] = useState(true)
 
   useEffect(() => {
-    const token = localStorage.getItem("auth_token")
+    const token = getAuthToken()
     const isPublicRoute = publicRoutes.includes(pathname)
 
     if (!token && !isPublicRoute) {

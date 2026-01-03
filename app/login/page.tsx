@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
-import { api } from "@/lib/api"
+import { api, setAuthToken } from "@/lib/api"
 import { Loader2 } from "lucide-react"
 
 export default function LoginPage() {
@@ -52,7 +52,7 @@ export default function LoginPage() {
     try {
       const response = (await api.login(formData)) as { token: string }
 
-      localStorage.setItem("auth_token", response.token)
+      setAuthToken(response.token)
 
       toast({
         title: "Welcome back!",

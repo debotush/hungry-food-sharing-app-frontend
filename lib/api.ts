@@ -1,7 +1,25 @@
 import { mockApi } from "./mock-api"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
-const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK_API === "true" || true // Default to mock for testing
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api"
+const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK_API === "true"
+
+// Helper functions for safe localStorage access (SSR-safe)
+const getAuthToken = (): string | null => {
+  if (typeof window === "undefined") return null
+  return localStorage.getItem("auth_token")
+}
+
+const setAuthToken = (token: string): void => {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("auth_token", token)
+  }
+}
+
+const removeAuthToken = (): void => {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("auth_token")
+  }
+}
 
 interface RequestOptions extends RequestInit {
   requiresAuth?: boolean
@@ -14,39 +32,47 @@ async function apiRequest<T>(endpoint: string, options: RequestOptions = {}): Pr
 
   const { requiresAuth = true, ...fetchOptions } = options
 
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...fetchOptions.headers,
+    ...(fetchOptions.headers as Record<string, string>),
   }
 
   if (requiresAuth) {
-    const token = localStorage.getItem("auth_token")
+    const token = getAuthToken()
     if (token) {
       headers["Authorization"] = `Bearer ${token}`
     }
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...fetchOptions,
-    headers,
-  })
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...fetchOptions,
+      headers,
+    })
 
-  if (response.status === 401) {
-    localStorage.removeItem("auth_token")
-    window.location.href = "/login"
-    throw new Error("Unauthorized")
+    if (response.status === 401) {
+      removeAuthToken()
+      window.location.href = "/login"
+      throw new Error("Unauthorized")
+    }
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: "An error occurred" }))
+      throw new Error(error.message || "Request failed")
+    }
+
+    return response.json()
+  } catch (error) {
+    // Handle network errors (e.g., backend not running)
+    if (error instanceof TypeError && error.message.includes("fetch")) {
+      throw new Error("Unable to connect to the server. Please ensure the backend is running.")
+    }
+    throw error
   }
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "An error occurred" }))
-    throw new Error(error.message || "Request failed")
-  }
-
-  return response.json()
 }
 
 async function handleMockRequest<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-  const token = localStorage.getItem("auth_token") || ""
+  const token = getAuthToken() || ""
   const body = options.body ? JSON.parse(options.body as string) : {}
 
   try {
@@ -118,7 +144,7 @@ async function handleMockRequest<T>(endpoint: string, options: RequestOptions = 
     throw new Error("Endpoint not found")
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {
-      localStorage.removeItem("auth_token")
+      removeAuthToken()
       window.location.href = "/login"
     }
     throw error
@@ -209,3 +235,7 @@ export const api = {
       body: JSON.stringify(data),
     }),
 }
+
+// Export auth helpers for use in components
+export { getAuthToken, setAuthToken, removeAuthToken }
+
