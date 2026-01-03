@@ -32,6 +32,7 @@ export function FoodCard({ post, onUpdate }: FoodCardProps) {
   const { toast } = useToast()
   const [isRequesting, setIsRequesting] = useState(false)
   const [isMapOpen, setIsMapOpen] = useState(false)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -84,17 +85,33 @@ export function FoodCard({ post, onUpdate }: FoodCardProps) {
     }
   }
 
+  // Prepare images array with fallback
+  const images = (post.imageUrls && post.imageUrls.length > 0)
+    ? post.imageUrls
+    : [`https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&h=600&fit=crop&q=80`]
+
+  const nextImage = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setCurrentImageIndex((prev) => (prev + 1) % images.length)
+  }
+
+  const prevImage = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)
+  }
+
   // Use first image from array or fallback to placeholder
   const displayImage = (post.imageUrls && post.imageUrls.length > 0)
     ? post.imageUrls[0]
     : `https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&h=600&fit=crop&q=80`
 
+
   return (
     <Card className="group overflow-hidden border-border/40 hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 bg-card/50 backdrop-blur-sm">
-      {/* Image Section */}
+      {/* Image Section with Carousel */}
       <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-primary/20 to-secondary/20">
         <Image
-          src={displayImage}
+          src={images[currentImageIndex]}
           alt={post.title}
           fill
           className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -102,6 +119,48 @@ export function FoodCard({ post, onUpdate }: FoodCardProps) {
         />
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+
+        {/* Image Navigation - Only show if multiple images */}
+        {images.length > 1 && (
+          <>
+            <button
+              onClick={prevImage}
+              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100 z-10"
+              aria-label="Previous image"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+            <button
+              onClick={nextImage}
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100 z-10"
+              aria-label="Next image"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+
+            {/* Dot Indicators */}
+            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+              {images.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setCurrentImageIndex(index)
+                  }}
+                  className={`w-2 h-2 rounded-full transition-all ${index === currentImageIndex
+                    ? 'bg-white w-6'
+                    : 'bg-white/50 hover:bg-white/75'
+                    }`}
+                  aria-label={`Go to image ${index + 1}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
 
         {/* Status Badge - Top Right */}
         <div className="absolute top-3 right-3">
