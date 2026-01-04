@@ -23,6 +23,7 @@ interface FoodPost {
   expiryDate: string
   status: string
   ownerName: string
+  ownerId: string
   ownerJoinDate: string
   isOwner: boolean
   imageUrls?: string[]

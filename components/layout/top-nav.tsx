@@ -2,7 +2,9 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,15 +13,49 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { User, LogOut } from "lucide-react"
+import { User, LogOut, MessageCircle } from "lucide-react"
 import { api } from "@/lib/api"
+import { useWebSocket } from "@/hooks/use-websocket"
 
 export function TopNav() {
   const pathname = usePathname()
+  const [unreadCount, setUnreadCount] = useState(0)
+  const { lastMessage } = useWebSocket()
 
   const handleLogout = async () => {
     await api.logout()
   }
+
+  // Fetch unread count on mount
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const data = await api.getUnreadCount()
+        setUnreadCount((data as any).unreadCount || 0)
+      } catch (error) {
+        // Silently fail if backend messaging endpoints are not implemented yet
+        // This prevents console errors during development
+        setUnreadCount(0)
+      }
+    }
+    fetchUnreadCount()
+  }, [])
+
+  // Update unread count when new messages arrive
+  useEffect(() => {
+    if (lastMessage?.type === "chat") {
+      const fetchUnreadCount = async () => {
+        try {
+          const data = await api.getUnreadCount()
+          setUnreadCount((data as any).unreadCount || 0)
+        } catch (error) {
+          // Silently fail - backend not ready
+          setUnreadCount(0)
+        }
+      }
+      fetchUnreadCount()
+    }
+  }, [lastMessage])
 
   const navLinks = [
     { href: "/feed", label: "Home" },
@@ -56,6 +92,26 @@ export function TopNav() {
               </Button>
             </Link>
           ))}
+
+          {/* Messages Link with Badge */}
+          <Link href="/messages">
+            <Button
+              variant={pathname?.startsWith("/messages") ? "default" : "ghost"}
+              className={
+                pathname?.startsWith("/messages")
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90 glow-hover relative"
+                  : "text-muted-foreground hover:text-foreground relative"
+              }
+            >
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Messages
+              {unreadCount > 0 && (
+                <Badge className="ml-2 bg-destructive text-destructive-foreground px-1.5 py-0 text-xs min-w-[20px] h-5">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </Badge>
+              )}
+            </Button>
+          </Link>
         </div>
 
         {/* Profile Dropdown */}

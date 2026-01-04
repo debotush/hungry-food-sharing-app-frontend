@@ -394,8 +394,33 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(data),
     }),
+
+  // Messaging
+  createConversation: (data: { foodPostId: string; otherParticipantId: string }) =>
+    apiRequest("/conversations", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  getConversations: () => apiRequest("/conversations"),
+
+  getConversationMessages: (conversationId: string, params?: { limit?: number; offset?: number }) => {
+    const queryParams = new URLSearchParams()
+    if (params?.limit) queryParams.append("limit", params.limit.toString())
+    if (params?.offset) queryParams.append("offset", params.offset.toString())
+    const query = queryParams.toString()
+    return apiRequest(`/conversations/${conversationId}/messages${query ? `?${query}` : ""}`)
+  },
+
+  markMessagesAsRead: (conversationId: string) =>
+    apiRequest(`/conversations/${conversationId}/messages/read`, {
+      method: "PUT",
+    }),
+
+  getUnreadCount: () => apiRequest("/messages/unread-count"),
 }
 
 // Export auth helpers for use in components
-export { getAuthToken, setAuthToken, removeAuthToken }
+export { getAuthToken, setAuthToken, removeAuthToken, getAccessToken }
+
 

@@ -15,6 +15,7 @@ interface Request {
   id: string
   foodTitle: string
   foodOwnerName: string
+  postOwnerId?: string
   requestDate: string
   status: "pending" | "accepted" | "rejected"
   pickupLocation?: string

@@ -22,6 +22,7 @@ type FoodFeedItem = {
   expiryDate: string
   status: "available" | "requested" | "taken"
   ownerName: string
+  ownerId: string
   imageUrls?: string[]
   isOwner?: boolean
 }
@@ -33,6 +34,7 @@ type HungerFeedItem = {
   location: string
   urgency: "normal" | "urgent"
   userName: string
+  ownerId: string
   timePosted: string
   isOwner?: boolean
 }
@@ -43,8 +45,9 @@ export default function FeedPage() {
   const { toast } = useToast()
   const [allFeed, setAllFeed] = useState<FeedItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const foodScrollRef = useRef<HTMLDivElement>(null)
+  const availableFoodScrollRef = useRef<HTMLDivElement>(null)
   const hungerScrollRef = useRef<HTMLDivElement>(null)
+  const expiredFoodScrollRef = useRef<HTMLDivElement>(null)
 
   const fetchFeed = async () => {
     setIsLoading(true)
@@ -66,7 +69,18 @@ export default function FeedPage() {
     fetchFeed()
   }, [])
 
-  const foodItems = (allFeed ?? []).filter((item) => item.type === "food") as FoodFeedItem[]
+  // Separate food items into available and expired
+  const allFoodItems = (allFeed ?? []).filter((item) => item.type === "food") as FoodFeedItem[]
+  const availableFoodItems = allFoodItems.filter((item) => {
+    const expiryDate = new Date(item.expiryDate)
+    const now = new Date()
+    return expiryDate > now && (item.status === "available" || item.status === "requested")
+  })
+  const expiredFoodItems = allFoodItems.filter((item) => {
+    const expiryDate = new Date(item.expiryDate)
+    const now = new Date()
+    return expiryDate <= now || item.status === "taken"
+  })
   const hungerItems = (allFeed ?? []).filter((item) => item.type === "hunger") as HungerFeedItem[]
 
   const scroll = (ref: React.RefObject<HTMLDivElement | null>, direction: "left" | "right") => {
@@ -101,18 +115,18 @@ export default function FeedPage() {
             </div>
           ) : (
             <>
-              {/* Food Available Section */}
-              {foodItems.length > 0 && (
+              {/* Row 1: Available Food */}
+              {availableFoodItems.length > 0 && (
                 <div className="space-y-4">
                   <div className="container max-w-7xl mx-auto px-4 md:px-6">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-2xl md:text-3xl font-bold text-foreground">Food Available</h2>
+                      <h2 className="text-2xl md:text-3xl font-bold text-foreground">Available Food</h2>
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
                           size="icon"
                           className="h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm"
-                          onClick={() => scroll(foodScrollRef, "left")}
+                          onClick={() => scroll(availableFoodScrollRef, "left")}
                         >
                           <ChevronLeft className="h-4 w-4" />
                         </Button>
@@ -120,7 +134,7 @@ export default function FeedPage() {
                           variant="outline"
                           size="icon"
                           className="h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm"
-                          onClick={() => scroll(foodScrollRef, "right")}
+                          onClick={() => scroll(availableFoodScrollRef, "right")}
                         >
                           <ChevronRight className="h-4 w-4" />
                         </Button>
@@ -130,12 +144,12 @@ export default function FeedPage() {
 
                   <div className="relative group">
                     <div
-                      ref={foodScrollRef}
+                      ref={availableFoodScrollRef}
                       className="flex gap-6 overflow-x-auto scrollbar-hide scroll-smooth px-4 md:px-6 py-8"
                       style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                     >
-                      {foodItems.map((item, index) => (
-                        <div key={`food-${item.id}-${index}`} className="flex-none w-[320px] md:w-[380px]">
+                      {availableFoodItems.map((item, index) => (
+                        <div key={`available-food-${item.id}-${index}`} className="flex-none w-[320px] md:w-[380px]">
                           <FoodCard post={item} onUpdate={fetchFeed} />
                         </div>
                       ))}
@@ -144,7 +158,7 @@ export default function FeedPage() {
                 </div>
               )}
 
-              {/* People in Need Section */}
+              {/* Row 2: People in Need */}
               {hungerItems.length > 0 && (
                 <div className="space-y-4">
                   <div className="container max-w-7xl mx-auto px-4 md:px-6">
@@ -187,8 +201,51 @@ export default function FeedPage() {
                 </div>
               )}
 
+              {/* Row 3: Expired Food */}
+              {expiredFoodItems.length > 0 && (
+                <div className="space-y-4">
+                  <div className="container max-w-7xl mx-auto px-4 md:px-6">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-2xl md:text-3xl font-bold text-muted-foreground">Expired / Taken Food</h2>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm"
+                          onClick={() => scroll(expiredFoodScrollRef, "left")}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm"
+                          onClick={() => scroll(expiredFoodScrollRef, "right")}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="relative group">
+                    <div
+                      ref={expiredFoodScrollRef}
+                      className="flex gap-6 overflow-x-auto scrollbar-hide scroll-smooth px-4 md:px-6 py-8 opacity-60"
+                      style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                    >
+                      {expiredFoodItems.map((item, index) => (
+                        <div key={`expired-food-${item.id}-${index}`} className="flex-none w-[320px] md:w-[380px]">
+                          <FoodCard post={item} onUpdate={fetchFeed} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Empty State */}
-              {foodItems.length === 0 && hungerItems.length === 0 && (
+              {availableFoodItems.length === 0 && hungerItems.length === 0 && expiredFoodItems.length === 0 && (
                 <div className="container max-w-7xl mx-auto px-4 md:px-6">
                   <div className="text-center py-16 space-y-3">
                     <p className="text-lg text-muted-foreground">No posts yet.</p>

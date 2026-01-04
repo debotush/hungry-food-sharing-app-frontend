@@ -15,6 +15,7 @@ interface HungerCardProps {
     location: string
     urgency: "normal" | "urgent"
     userName: string
+    ownerId: string
     timePosted: string
     isOwner?: boolean
   }
@@ -39,106 +40,130 @@ export function HungerCard({ post }: HungerCardProps) {
     return `${days}d ago`
   }
 
+  const [isHovered, setIsHovered] = useState(false)
+
   return (
-    <Card className="group overflow-hidden border-border/40 hover:border-secondary/50 transition-all duration-300 hover:shadow-xl hover:shadow-secondary/5 bg-card/50 backdrop-blur-sm">
-      {/* Gradient Header */}
-      <div className={`relative p-6 ${post.urgency === "urgent" ? "bg-gradient-to-br from-orange-500/20 via-red-500/20 to-pink-500/20" : "bg-gradient-to-br from-secondary/20 via-secondary/10 to-tertiary/20"}`}>
-        {/* Urgency Badge */}
-        {post.urgency === "urgent" && (
-          <div className="absolute top-3 right-3">
-            <Badge className="bg-red-500/30 text-red-300 border-red-500/50 backdrop-blur-md font-semibold animate-pulse">
-              <Flame className="h-3 w-3 mr-1" />
-              URGENT
-            </Badge>
-          </div>
-        )}
+    <div
+      className="group relative transition-all duration-300 ease-out cursor-default"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Main Card */}
+      <div className={`
+        relative rounded-lg overflow-hidden bg-black
+        transition-all duration-300 ease-out origin-center
+        ${isHovered ? 'scale-110 z-50 shadow-2xl shadow-black/60' : 'scale-100'}
+      `}>
+        {/* Image Section (Placeholder with Icon) */}
+        <div className="relative aspect-[16/9] overflow-hidden bg-zinc-900 flex items-center justify-center">
+          {/* Background Pattern/Icon */}
+          <div className={`absolute inset-0 bg-gradient-to-br ${post.urgency === "urgent" ? "from-orange-900/40 via-red-900/20 to-black" : "from-emerald-900/40 via-teal-900/20 to-black"}`} />
+          <Flame className={`h-24 w-24 ${post.urgency === "urgent" ? "text-orange-500/20" : "text-emerald-500/20"} transition-transform duration-700 group-hover:scale-110`} />
 
-        {/* Message */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-secondary/30 backdrop-blur-sm">
-              <Flame className="h-5 w-5 text-secondary" />
+          {/* Base Gradient - Always visible */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+          {/* Enhanced Gradient on Hover */}
+          <div className={`
+            absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent
+            transition-opacity duration-300
+            ${isHovered ? 'opacity-100' : 'opacity-0'}
+          `} />
+
+          {/* Status Badge - Top Right */}
+          <div className="absolute top-3 right-3 z-10">
+            {post.urgency === "urgent" ? (
+              <Badge className="bg-red-500 text-white font-semibold text-xs px-2 py-1 animate-pulse border-red-600">
+                <Flame className="h-3 w-3 mr-1" />
+                URGENT
+              </Badge>
+            ) : (
+              <Badge className="bg-emerald-500 text-white font-semibold text-xs px-2 py-1 border-emerald-600">
+                HUNGRY
+              </Badge>
+            )}
+          </div>
+
+          {/* Message - Always visible at bottom */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
+            <h3 className="text-lg font-bold text-white drop-shadow-2xl line-clamp-2">
+              "{post.message}"
+            </h3>
+          </div>
+        </div>
+
+        {/* Expanded Details Section - Slides in on hover */}
+        <div className={`
+          bg-gradient-to-b from-zinc-900 to-black
+          transition-all duration-300 ease-out overflow-hidden
+          ${isHovered ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}
+        `}>
+          <div className="p-4 space-y-3">
+            {/* Quick Info Row */}
+            <div className="flex items-center gap-4 text-xs text-gray-400">
+              <div className="flex items-center gap-1.5">
+                <User className="h-3.5 w-3.5 text-emerald-400" />
+                <span className="text-gray-300">{post.userName}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 text-amber-400" />
+                <span>{getTimeAgo(post.timePosted)}</span>
+              </div>
             </div>
-            <Badge variant="outline" className="bg-secondary/20 text-secondary border-secondary/40 backdrop-blur-sm">
-              HUNGRY
-            </Badge>
-          </div>
 
-          <p className="text-base text-foreground leading-relaxed font-medium">
-            {post.message}
-          </p>
+            {/* Location */}
+            <div className="flex items-center justify-between gap-2 text-sm">
+              <div className="flex items-center gap-2 text-gray-300">
+                <MapPin className="h-4 w-4 text-blue-400 flex-shrink-0" />
+                <span className="text-xs truncate">{post.location}</span>
+              </div>
+              <button
+                className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsMapOpen(true)
+                }}
+              >
+                Map
+              </button>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 h-9 bg-muted/30 hover:bg-secondary/20 hover:text-secondary hover:border-secondary/50 text-white border-white/20 text-xs"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsMapOpen(true)
+                }}
+              >
+                <MapPin className="h-3 w-3 mr-1" />
+                Location
+              </Button>
+
+              {!post.isOwner && (
+                <Button
+                  size="sm"
+                  className="flex-1 bg-white hover:bg-gray-200 text-black h-9 text-xs font-semibold"
+                  onClick={() => router.push("/create-food")}
+                >
+                  Offer Food
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Content Section */}
-      <div className="p-4 space-y-4">
-        {/* Details Grid */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex items-center gap-2 text-sm">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-secondary/10">
-              <MapPin className="h-4 w-4 text-secondary" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xs text-muted-foreground">Location</span>
-              <span className="font-medium text-foreground">{post.location}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-sm">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-tertiary/10">
-              <Clock className="h-4 w-4 text-tertiary" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xs text-muted-foreground">Posted</span>
-              <span className="font-medium text-foreground">{getTimeAgo(post.timePosted)}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Map Button */}
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full h-9 bg-muted/30 hover:bg-secondary/20 hover:text-secondary hover:border-secondary/50"
-          onClick={(e) => {
-            e.stopPropagation()
-            setIsMapOpen(true)
-          }}
-        >
-          <MapPin className="h-4 w-4 mr-2" />
-          View Location on Map
-        </Button>
-
-        {/* Map Modal */}
-        <MapModal
-          isOpen={isMapOpen}
-          onClose={() => setIsMapOpen(false)}
-          location={post.location}
-          title={`Help ${post.userName}`}
-        />
-
-        {/* Posted By */}
-        <div className="flex items-center gap-2 text-sm pt-2 border-t border-border/50">
-          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-secondary/20">
-            <User className="h-3 w-3 text-secondary" />
-          </div>
-          <span className="text-muted-foreground">
-            <span className="font-medium text-foreground">{post.userName}</span> needs help
-          </span>
-        </div>
-
-        {/* Action Button */}
-        {!post.isOwner && (
-          <div className="pt-2">
-            <Button
-              className="w-full bg-gradient-to-r from-secondary to-secondary/80 text-secondary-foreground hover:from-secondary/90 hover:to-secondary/70 shadow-lg shadow-secondary/25 transition-all duration-300"
-              onClick={() => router.push("/create-food")}
-            >
-              Offer Food
-            </Button>
-          </div>
-        )}
-      </div>
-    </Card>
+      {/* Map Modal */}
+      <MapModal
+        isOpen={isMapOpen}
+        onClose={() => setIsMapOpen(false)}
+        location={post.location}
+        title={`Help ${post.userName}`}
+      />
+    </div>
   )
 }

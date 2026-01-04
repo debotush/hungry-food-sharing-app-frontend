@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Clock, User, Utensils, Play } from "lucide-react"
+import { MapPin, Clock, User, Utensils, Play, MessageCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { api } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
@@ -20,6 +20,7 @@ interface FoodCardProps {
     expiryDate: string
     status: "available" | "requested" | "taken"
     ownerName: string
+    ownerId: string
     imageUrls?: string[]
     isOwner?: boolean
   }
@@ -84,6 +85,24 @@ export function FoodCard({ post, onUpdate }: FoodCardProps) {
       })
     } finally {
       setIsRequesting(false)
+    }
+  }
+
+  const handleMessage = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+
+    try {
+      const conversation = await api.createConversation({
+        foodPostId: post.id,
+        otherParticipantId: post.ownerId,
+      })
+      router.push(`/messages/${(conversation as any).id}`)
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to start conversation",
+        description: error instanceof Error ? error.message : "Something went wrong.",
+      })
     }
   }
 
@@ -233,7 +252,7 @@ export function FoodCard({ post, onUpdate }: FoodCardProps) {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex-1 bg-white/10 hover:bg-white/20 text-white border-white/20 h-8 text-xs"
+                  className="flex-1 h-9 bg-muted/30 hover:bg-secondary/20 hover:text-secondary hover:border-secondary/50 text-white border-white/20 text-xs"
                   onClick={(e) => {
                     e.stopPropagation()
                     router.push(`/food/${post.id}`)
@@ -245,7 +264,7 @@ export function FoodCard({ post, onUpdate }: FoodCardProps) {
               ) : post.status === "available" ? (
                 <Button
                   size="sm"
-                  className="flex-1 bg-white hover:bg-gray-200 text-black h-8 text-xs font-semibold"
+                  className="flex-1 bg-white hover:bg-gray-200 text-black h-9 text-xs font-semibold"
                   onClick={handleRequest}
                   disabled={isRequesting}
                 >
@@ -255,10 +274,21 @@ export function FoodCard({ post, onUpdate }: FoodCardProps) {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex-1 bg-gray-800 text-gray-400 border-gray-700 h-8 text-xs"
+                  className="flex-1 bg-gray-800 text-gray-400 border-gray-700 h-9 text-xs"
                   disabled
                 >
                   {post.status === "taken" ? "Not Available" : "Requested"}
+                </Button>
+              )}
+              {!post.isOwner && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 h-9 bg-muted/30 hover:bg-secondary/20 hover:text-secondary hover:border-secondary/50 text-white border-white/20 text-xs"
+                  onClick={handleMessage}
+                >
+                  <MessageCircle className="h-3 w-3 mr-1" />
+                  Message
                 </Button>
               )}
             </div>
@@ -274,8 +304,8 @@ export function FoodCard({ post, onUpdate }: FoodCardProps) {
                       setCurrentImageIndex(index)
                     }}
                     className={`h-1 rounded-full transition-all ${index === currentImageIndex
-                        ? 'bg-white w-6'
-                        : 'bg-gray-600 w-1 hover:bg-gray-500'
+                      ? 'bg-white w-6'
+                      : 'bg-gray-600 w-1 hover:bg-gray-500'
                       }`}
                     aria-label={`Go to image ${index + 1}`}
                   />
