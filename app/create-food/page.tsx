@@ -2,8 +2,8 @@
 
 import type React from "react"
 
-import { useState, Suspense } from "react"
-import { useRouter } from "next/navigation"
+import { useState, Suspense, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { TopNav } from "@/components/layout/top-nav"
 import { BottomNav } from "@/components/layout/bottom-nav"
 import { AuthGuard } from "@/components/layout/auth-guard"
@@ -35,7 +35,10 @@ export default function CreateFoodPage() {
 function CreateFoodForm() {
   const router = useRouter()
   const { toast } = useToast()
+  const searchParams = useSearchParams()
+  const hungerBroadcastId = searchParams.get('hungerBroadcastId')
   const [isLoading, setIsLoading] = useState(false)
+  const [isPaid, setIsPaid] = useState(false)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -57,7 +60,9 @@ function CreateFoodForm() {
     if (!formData.description.trim()) newErrors.description = "Description is required"
     if (formData.description.length > 280) newErrors.description = "Description must be 280 characters or less"
     if (!formData.quantity.trim()) newErrors.quantity = "Quantity is required"
-    if (isNaN(Number(formData.price)) || Number(formData.price) < 0) newErrors.price = "Price must be a valid positive number"
+    if (isPaid && (!formData.price || isNaN(Number(formData.price)) || Number(formData.price) <= 0)) {
+      newErrors.price = "Please enter a valid price greater than 0"
+    }
     if (!formData.location.trim()) newErrors.location = "Pickup location is required"
     if (!formData.expiryDate) newErrors.expiryDate = "Expiry date is required"
     if (!formData.expiryTime) newErrors.expiryTime = "Expiry time is required"
@@ -283,24 +288,57 @@ function CreateFoodForm() {
                   {errors.quantity && <p className="text-sm text-destructive">{errors.quantity}</p>}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="price">Price (€) <span className="text-muted-foreground text-xs">(Optional, 0 for free)</span></Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    placeholder="0.00"
-                    value={formData.price}
-                    onChange={(e) => {
-                      setFormData({ ...formData, price: e.target.value })
-                      setErrors({ ...errors, price: "" })
-                    }}
-                    aria-invalid={!!errors.price}
-                    disabled={isLoading}
-                  />
-                  {errors.price && <p className="text-sm text-destructive">{errors.price}</p>}
+                <div className="space-y-3">
+                  <Label>How do you want to share? *</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={!isPaid ? "default" : "outline"}
+                      className={`flex-1 h-12 ${!isPaid ? "border-2 border-primary" : ""}`}
+                      onClick={() => {
+                        setIsPaid(false)
+                        setFormData({ ...formData, price: "0" })
+                        setErrors({ ...errors, price: "" })
+                      }}
+                    >
+                      Free
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={isPaid ? "default" : "outline"}
+                      className={`flex-1 h-12 ${isPaid ? "border-2 border-primary" : ""}`}
+                      onClick={() => {
+                        setIsPaid(true)
+                        if (formData.price === "0") {
+                          setFormData({ ...formData, price: "" })
+                        }
+                      }}
+                    >
+                      Paid
+                    </Button>
+                  </div>
                 </div>
+
+                {isPaid && (
+                  <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <Label htmlFor="price">Price (€) *</Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      min="0.5"
+                      step="0.5"
+                      placeholder="e.g., 2.00"
+                      value={formData.price}
+                      onChange={(e) => {
+                        setFormData({ ...formData, price: e.target.value })
+                        setErrors({ ...errors, price: "" })
+                      }}
+                      aria-invalid={!!errors.price}
+                      disabled={isLoading}
+                    />
+                    {errors.price && <p className="text-sm text-destructive">{errors.price}</p>}
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="location">Pickup Location *</Label>
