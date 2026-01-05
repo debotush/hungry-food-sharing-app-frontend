@@ -14,7 +14,8 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { api } from "@/lib/api"
-import { Loader2, ArrowLeft } from "lucide-react"
+import { Loader2, ArrowLeft, Banknote, CreditCard, Wallet } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import imageCompression from "browser-image-compression"
 
@@ -44,6 +45,7 @@ function CreateFoodForm() {
     description: "",
     quantity: "",
     price: "0",
+    paymentMethod: "cash",
     location: "",
     expiryDate: "",
     expiryTime: "",
@@ -183,6 +185,9 @@ function CreateFoodForm() {
       formDataToSend.append('description', formData.description)
       formDataToSend.append('quantity', formData.quantity)
       formDataToSend.append('price', formData.price)
+      if (isPaid) {
+        formDataToSend.append('paymentMethod', formData.paymentMethod)
+      }
 
       // If linked to hunger broadcast, include it in metadata (backend support pending)
       if (hungerBroadcastId) {
@@ -337,6 +342,47 @@ function CreateFoodForm() {
                       disabled={isLoading}
                     />
                     {errors.price && <p className="text-sm text-destructive">{errors.price}</p>}
+                  </div>
+                )}
+
+                {isPaid && (
+                  <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-500">
+                    <Label>Payment Method *</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div
+                        className={`
+                          relative flex items-center p-4 rounded-xl border-2 transition-all cursor-pointer bg-card/50
+                          ${formData.paymentMethod === 'cash' ? 'border-primary bg-primary/5' : 'border-border hover:border-border/80'}
+                        `}
+                        onClick={() => setFormData({ ...formData, paymentMethod: 'cash' })}
+                      >
+                        <div className={`p-2 rounded-lg ${formData.paymentMethod === 'cash' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                          <Banknote className="h-5 w-5" />
+                        </div>
+                        <div className="ml-3">
+                          <p className="text-sm font-semibold">Cash</p>
+                          <p className="text-xs text-muted-foreground font-medium">Pay in person</p>
+                        </div>
+                        {formData.paymentMethod === 'cash' && (
+                          <div className="absolute top-2 right-2">
+                            <div className="h-2 w-2 rounded-full bg-primary" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="relative flex items-center p-4 rounded-xl border-2 border-border/40 bg-muted/30 opacity-60 cursor-not-allowed">
+                        <div className="p-2 rounded-lg bg-muted text-muted-foreground">
+                          <CreditCard className="h-5 w-5" />
+                        </div>
+                        <div className="ml-3">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold">Online Payment</p>
+                          </div>
+                          <p className="text-xs text-muted-foreground font-medium">Coming soon</p>
+                        </div>
+                        <Badge variant="outline" className="absolute top-2 right-2 text-[10px] px-1.5 py-0">Soon</Badge>
+                      </div>
+                    </div>
                   </div>
                 )}
 
