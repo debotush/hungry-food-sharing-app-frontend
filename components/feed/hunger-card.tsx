@@ -7,6 +7,10 @@ import { MapPin, Clock, User, Flame } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { MapModal } from "@/components/ui/map-modal"
+import { api } from "@/lib/api"
+import { useToast } from "@/hooks/use-toast"
+import { MessageCircle } from "lucide-react"
+
 
 interface HungerCardProps {
   post: {
@@ -23,7 +27,29 @@ interface HungerCardProps {
 
 export function HungerCard({ post }: HungerCardProps) {
   const router = useRouter()
+  const { toast } = useToast()
   const [isMapOpen, setIsMapOpen] = useState(false)
+
+
+  const handleMessage = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      // In a real app, we might want to pass a hungerBroadcastId or similar context
+      // For now, we'll create a conversation with the user directly (foodPostId is optional)
+      const conversation = await api.createConversation({
+        otherParticipantId: post.ownerId,
+      })
+      router.push(`/messages/${(conversation as any).id}`)
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to start conversation",
+        description: error instanceof Error ? error.message : "Something went wrong.",
+      })
+    }
+  }
+
+
 
   const getTimeAgo = (date: string) => {
     const now = new Date()
@@ -144,13 +170,18 @@ export function HungerCard({ post }: HungerCardProps) {
               </Button>
 
               {!post.isOwner && (
-                <Button
-                  size="sm"
-                  className="flex-1 bg-white hover:bg-gray-200 text-black h-9 text-xs font-semibold"
-                  onClick={() => router.push("/create-food")}
-                >
-                  Offer Food
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 h-9 bg-muted/30 hover:bg-secondary/20 hover:text-secondary hover:border-secondary/50 text-white border-white/20 text-xs"
+                    onClick={handleMessage}
+                  >
+                    <MessageCircle className="h-3 w-3 mr-1" />
+                    Message
+                  </Button>
+
+                </>
               )}
             </div>
           </div>

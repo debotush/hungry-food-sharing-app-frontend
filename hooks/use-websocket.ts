@@ -45,11 +45,18 @@ export function useWebSocket() {
         wsManager.send(message)
     }, [])
 
-    const sendChatMessage = useCallback((conversationId: string, content: string) => {
+    const sendChatMessage = useCallback((
+        conversationId: string,
+        content: string,
+        messageType?: 'text' | 'image' | 'price_offer',
+        metadata?: any
+    ) => {
         wsManager.send({
             type: "chat",
             conversationId,
             content,
+            messageType,
+            metadata,
         })
     }, [])
 

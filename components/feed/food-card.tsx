@@ -157,7 +157,12 @@ export function FoodCard({ post, onUpdate }: FoodCardProps) {
           `} />
 
           {/* Status Badge - Top Right */}
-          <div className="absolute top-3 right-3 z-10">
+          <div className="absolute top-3 right-3 z-10 flex gap-2">
+            {post.price && post.price > 0 && (
+              <Badge className="bg-white text-black font-bold text-xs px-2 py-1 shadow-lg border-none">
+                €{post.price}
+              </Badge>
+            )}
             <Badge className={`${getStatusColor(post.status)} font-semibold text-xs px-2 py-1`}>
               {post.status.toUpperCase()}
             </Badge>

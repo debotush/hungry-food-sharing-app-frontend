@@ -2,7 +2,7 @@
 
 export interface Conversation {
     id: string
-    foodPostId: string
+    foodPostId?: string | null
     participant1Id: string
     participant2Id: string
     lastMessageAt: string
@@ -25,10 +25,12 @@ export interface Message {
     isRead: boolean
     createdAt: string
     senderName?: string
+    type?: 'text' | 'image' | 'price_offer'
+    metadata?: any
 }
 
 export interface CreateConversationRequest {
-    foodPostId: string
+    foodPostId?: string
     otherParticipantId: string
 }
 
@@ -66,6 +68,8 @@ export interface WSChatMessageSend extends WSBaseMessage {
     type: 'chat'
     conversationId: string
     content: string
+    messageType?: 'text' | 'image' | 'price_offer'
+    metadata?: any
 }
 
 export interface WSChatMessageReceive extends WSBaseMessage {
@@ -103,6 +107,7 @@ export interface FoodFeedItem {
     ownerId: string
     imageUrls?: string[]
     isOwner?: boolean
+    price?: number
 }
 
 export interface HungerFeedItem {

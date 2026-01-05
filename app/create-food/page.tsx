@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { useRouter } from "next/navigation"
 import { TopNav } from "@/components/layout/top-nav"
 import { BottomNav } from "@/components/layout/bottom-nav"
@@ -25,6 +25,14 @@ const MAX_IMAGES = 5
 const ALLOWED_FORMATS = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 
 export default function CreateFoodPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CreateFoodForm />
+    </Suspense>
+  )
+}
+
+function CreateFoodForm() {
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
@@ -32,6 +40,7 @@ export default function CreateFoodPage() {
     title: "",
     description: "",
     quantity: "",
+    price: "0",
     location: "",
     expiryDate: "",
     expiryTime: "",
@@ -48,6 +57,7 @@ export default function CreateFoodPage() {
     if (!formData.description.trim()) newErrors.description = "Description is required"
     if (formData.description.length > 280) newErrors.description = "Description must be 280 characters or less"
     if (!formData.quantity.trim()) newErrors.quantity = "Quantity is required"
+    if (isNaN(Number(formData.price)) || Number(formData.price) < 0) newErrors.price = "Price must be a valid positive number"
     if (!formData.location.trim()) newErrors.location = "Pickup location is required"
     if (!formData.expiryDate) newErrors.expiryDate = "Expiry date is required"
     if (!formData.expiryTime) newErrors.expiryTime = "Expiry time is required"
@@ -167,6 +177,13 @@ export default function CreateFoodPage() {
       formDataToSend.append('title', formData.title)
       formDataToSend.append('description', formData.description)
       formDataToSend.append('quantity', formData.quantity)
+      formDataToSend.append('price', formData.price)
+
+      // If linked to hunger broadcast, include it in metadata (backend support pending)
+      if (hungerBroadcastId) {
+        formDataToSend.append('hungerBroadcastId', hungerBroadcastId)
+      }
+
       formDataToSend.append('location', formData.location)
       formDataToSend.append('expiryDate', expiryDateTime.toISOString())
 
@@ -264,6 +281,25 @@ export default function CreateFoodPage() {
                     disabled={isLoading}
                   />
                   {errors.quantity && <p className="text-sm text-destructive">{errors.quantity}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="price">Price (€) <span className="text-muted-foreground text-xs">(Optional, 0 for free)</span></Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    placeholder="0.00"
+                    value={formData.price}
+                    onChange={(e) => {
+                      setFormData({ ...formData, price: e.target.value })
+                      setErrors({ ...errors, price: "" })
+                    }}
+                    aria-invalid={!!errors.price}
+                    disabled={isLoading}
+                  />
+                  {errors.price && <p className="text-sm text-destructive">{errors.price}</p>}
                 </div>
 
                 <div className="space-y-2">

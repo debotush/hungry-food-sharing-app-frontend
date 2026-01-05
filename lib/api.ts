@@ -1,7 +1,5 @@
-import { mockApi } from "./mock-api"
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api"
-const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK_API === "true"
 
 // Helper functions for safe localStorage access (SSR-safe)
 // Access Token
@@ -147,10 +145,6 @@ interface RequestOptions extends RequestInit {
 }
 
 async function apiRequest<T>(endpoint: string, options: RequestOptions = {}, retryCount = 0): Promise<T> {
-  if (USE_MOCK_API) {
-    return handleMockRequest<T>(endpoint, options)
-  }
-
   const { requiresAuth = true, ...fetchOptions } = options
 
   const headers: Record<string, string> = {
@@ -211,85 +205,6 @@ async function apiRequest<T>(endpoint: string, options: RequestOptions = {}, ret
   }
 }
 
-async function handleMockRequest<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-  const token = getAuthToken() || ""
-  const body = options.body ? JSON.parse(options.body as string) : {}
-
-  try {
-    // Auth endpoints
-    if (endpoint === "/auth/register" && options.method === "POST") {
-      return (await mockApi.register(body)) as T
-    }
-    if (endpoint === "/auth/login" && options.method === "POST") {
-      return (await mockApi.login(body)) as T
-    }
-    if (endpoint === "/auth/me") {
-      return (await mockApi.getMe(token)) as T
-    }
-
-    // Feed endpoints
-    if (endpoint.startsWith("/feed")) {
-      const params = new URLSearchParams(endpoint.split("?")[1])
-      const type = params.get("type") as "all" | "food" | "hunger" | undefined
-      return (await mockApi.getFeed(type)) as T
-    }
-
-    // Food posts endpoints
-    if (endpoint === "/food-posts" && options.method === "POST") {
-      return (await mockApi.createFoodPost(token, body)) as T
-    }
-    if (endpoint === "/food-posts") {
-      return (await mockApi.getFoodPosts()) as T
-    }
-    if (endpoint.match(/^\/food-posts\/\d+$/)) {
-      const id = endpoint.split("/")[2]
-      return (await mockApi.getFoodPost(id)) as T
-    }
-    if (endpoint.match(/^\/food-posts\/\d+\/request$/)) {
-      const id = endpoint.split("/")[2]
-      return (await mockApi.requestFood(token, id)) as T
-    }
-    if (endpoint.match(/^\/food-posts\/\d+\/requests$/)) {
-      const id = endpoint.split("/")[2]
-      return (await mockApi.getFoodRequests(token, id)) as T
-    }
-    if (endpoint.match(/^\/food-posts\/\d+\/requests\/\d+\/accept$/)) {
-      const [, , postId, , requestId] = endpoint.split("/")
-      return (await mockApi.acceptRequest(token, postId, requestId)) as T
-    }
-    if (endpoint.match(/^\/food-posts\/\d+\/requests\/\d+\/reject$/)) {
-      const [, , postId, , requestId] = endpoint.split("/")
-      return (await mockApi.rejectRequest(token, postId, requestId)) as T
-    }
-
-    // Hunger broadcasts endpoints
-    if (endpoint === "/hunger-broadcasts" && options.method === "POST") {
-      return (await mockApi.createHungerBroadcast(token, body)) as T
-    }
-    if (endpoint === "/hunger-broadcasts") {
-      return (await mockApi.getHungerBroadcasts()) as T
-    }
-
-    // User endpoints
-    if (endpoint === "/my-requests") {
-      return (await mockApi.getMyRequests(token)) as T
-    }
-    if (endpoint === "/my-posts") {
-      return (await mockApi.getMyPosts(token)) as T
-    }
-    if (endpoint === "/profile") {
-      return (await mockApi.getProfile(token)) as T
-    }
-
-    throw new Error("Endpoint not found")
-  } catch (error) {
-    if (error instanceof Error && error.message === "Unauthorized") {
-      removeAuthToken()
-      window.location.href = "/login"
-    }
-    throw error
-  }
-}
 
 export const api = {
   // Auth
@@ -396,7 +311,7 @@ export const api = {
     }),
 
   // Messaging
-  createConversation: (data: { foodPostId: string; otherParticipantId: string }) =>
+  createConversation: (data: { foodPostId?: string; otherParticipantId: string; hungerBroadcastId?: string }) =>
     apiRequest("/conversations", {
       method: "POST",
       body: JSON.stringify(data),
@@ -411,6 +326,12 @@ export const api = {
     const query = queryParams.toString()
     return apiRequest(`/conversations/${conversationId}/messages${query ? `?${query}` : ""}`)
   },
+
+  sendMessage: (conversationId: string, data: { content: string; type?: string; metadata?: any }) =>
+    apiRequest(`/conversations/${conversationId}/messages`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
   markMessagesAsRead: (conversationId: string) =>
     apiRequest(`/conversations/${conversationId}/messages/read`, {

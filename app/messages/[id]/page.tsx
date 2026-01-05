@@ -124,8 +124,8 @@ export default function ConversationPage() {
         }, 100)
     }
 
-    const handleSendMessage = (content: string) => {
-        sendChatMessage(conversationId, content)
+    const handleSendMessage = (content: string, type?: 'text' | 'image' | 'price_offer', metadata?: any) => {
+        sendChatMessage(conversationId, content, type, metadata)
     }
 
     const handleTyping = () => {
