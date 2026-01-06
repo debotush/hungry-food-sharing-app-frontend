@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
+import { useGeolocation } from "@/hooks/use-geolocation"
 import { api } from "@/lib/api"
 import { Loader2, ArrowLeft, Flame } from "lucide-react"
 import Link from "next/link"
@@ -20,6 +21,7 @@ import Link from "next/link"
 export default function CreateHungerPage() {
   const router = useRouter()
   const { toast } = useToast()
+  const { latitude, longitude } = useGeolocation()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     message: "",
@@ -47,7 +49,11 @@ export default function CreateHungerPage() {
     setIsLoading(true)
 
     try {
-      await api.createHungerBroadcast(formData)
+      await api.createHungerBroadcast({
+        ...formData,
+        latitude,
+        longitude
+      })
 
       toast({
         title: "Broadcast sent!",

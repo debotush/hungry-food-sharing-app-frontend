@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { TopNav } from "@/components/layout/top-nav"
 import { BottomNav } from "@/components/layout/bottom-nav"
 import { AuthGuard } from "@/components/layout/auth-guard"
@@ -10,36 +10,89 @@ import { api } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useRef } from "react"
 import { useWebSocket } from "@/hooks/use-websocket"
 import type { FoodFeedItem, HungerFeedItem } from "@/types/messaging"
 
 type FeedItem = FoodFeedItem | HungerFeedItem
 
+// ... imports
+import { useGeolocation } from "@/hooks/use-geolocation"
+import { LocationPermissionBanner } from "@/components/feed/location-permission-banner"
+
 export default function FeedPage() {
   const { toast } = useToast()
   const { lastMessage } = useWebSocket()
+  const { latitude, longitude, error: locationError } = useGeolocation()
+  const [showPermissionBanner, setShowPermissionBanner] = useState(false)
+
   const [allFeed, setAllFeed] = useState<FeedItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [preferredRadius, setPreferredRadius] = useState<number | undefined>()
   const availableFoodScrollRef = useRef<HTMLDivElement>(null)
   const hungerScrollRef = useRef<HTMLDivElement>(null)
   const expiredFoodScrollRef = useRef<HTMLDivElement>(null)
 
-  const fetchFeed = async () => {
+  const fetchFeed = useCallback(async () => {
     setIsLoading(true)
     try {
-      const data = await api.getFeed("all")
+      // Only pass location params if both lat and lng are available
+      let data;
+      if (latitude && longitude) {
+        // If we have a preferred radius from profile, we can be explicit or omit it to let backend use it
+        // The backend guide says it uses preference if no radius param is provided.
+        // We'll omit it to test the backend preference logic for logged-in users.
+        console.log('🌍 Fetching feed with location:', { lat: latitude, lng: longitude })
+        data = await api.getFeed("all", { lat: latitude, lng: longitude })
+      } else {
+        console.log('🌍 Fetching global feed (no location)')
+        data = await api.getFeed("all")
+      }
       setAllFeed(data as FeedItem[])
     } catch (error) {
+      console.error("Feed fetch failed:", error)
       toast({
         variant: "destructive",
         title: "Failed to load feed",
-        description: error instanceof Error ? error.message : "Something went wrong.",
+        description: error instanceof Error ? error.message : "Backend error. Please check the backend logs.",
       })
+      // Set empty feed to prevent infinite loading
+      setAllFeed([])
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [latitude, longitude, toast])
+
+  // Fetch user profile to get preferred radius & user ID (if logged in)
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const data = await api.getProfile() as any
+        if (data?.id) {
+          setCurrentUserId(data.id)
+        }
+        if (data?.preferredRadiusKm) {
+          setPreferredRadius(data.preferredRadiusKm)
+        }
+      } catch (error) {
+        // Silently fail as user might not be logged in (browsing as guest)
+        console.log("Guest mode or profile fetch failed")
+      }
+    }
+    fetchProfile()
+  }, [])
+
+  useEffect(() => {
+    // Show banner if location is not available and no error (meaning prompt hasn't happened or was dismissed/pending?)
+    // Actually simplicity: if !latitude, show banner to encourage enabling
+    if (!latitude && !locationError) {
+      // Delay slightly to not flash
+      const timer = setTimeout(() => setShowPermissionBanner(true), 1000)
+      return () => clearTimeout(timer)
+    } else {
+      setShowPermissionBanner(false)
+    }
+  }, [latitude, locationError])
 
   // Handle real-time WebSocket feed updates
   const handleFeedBroadcast = useCallback((newItem: FeedItem) => {
@@ -56,7 +109,7 @@ export default function FeedPage() {
 
   useEffect(() => {
     fetchFeed()
-  }, [])
+  }, [fetchFeed])
 
   // Listen for WebSocket broadcast messages
   useEffect(() => {
@@ -72,19 +125,37 @@ export default function FeedPage() {
     }
   }, [lastMessage, handleFeedBroadcast])
 
-  // Separate food items into available and expired
-  const allFoodItems = (allFeed ?? []).filter((item) => item.type === "food") as FoodFeedItem[]
-  const availableFoodItems = allFoodItems.filter((item) => {
-    const expiryDate = new Date(item.expiryDate)
-    const now = new Date()
-    return expiryDate > now && (item.status === "available" || item.status === "requested")
-  })
-  const expiredFoodItems = allFoodItems.filter((item) => {
-    const expiryDate = new Date(item.expiryDate)
-    const now = new Date()
-    return expiryDate <= now || item.status === "taken"
-  })
-  const hungerItems = (allFeed ?? []).filter((item) => item.type === "hunger") as HungerFeedItem[]
+  // Separate and enrich food items with ownership info using useMemo
+  const enrichedFoodItems = useMemo(() => {
+    const allFoodItems = (allFeed ?? []).filter((item) => item.type === "food") as FoodFeedItem[]
+    return allFoodItems.map(item => ({
+      ...item,
+      isOwner: currentUserId === item.ownerId
+    }))
+  }, [allFeed, currentUserId])
+
+  const availableFoodItems = useMemo(() => {
+    return enrichedFoodItems.filter((item) => {
+      const expiryDate = new Date(item.expiryDate)
+      const now = new Date()
+      return expiryDate > now && (item.status === "available" || item.status === "requested")
+    })
+  }, [enrichedFoodItems])
+
+  const expiredFoodItems = useMemo(() => {
+    return enrichedFoodItems.filter((item) => {
+      const expiryDate = new Date(item.expiryDate)
+      const now = new Date()
+      return expiryDate <= now || item.status === "taken"
+    })
+  }, [enrichedFoodItems])
+
+  const hungerItems = useMemo(() => {
+    return ((allFeed ?? []).filter((item) => item.type === "hunger") as HungerFeedItem[]).map(item => ({
+      ...item,
+      isOwner: currentUserId === item.ownerId
+    }))
+  }, [allFeed, currentUserId])
 
   const scroll = (ref: React.RefObject<HTMLDivElement | null>, direction: "left" | "right") => {
     if (ref.current) {
@@ -100,6 +171,17 @@ export default function FeedPage() {
     <AuthGuard>
       <div className="min-h-screen bg-background pb-20 md:pb-0">
         <TopNav />
+
+        <LocationPermissionBanner
+          isVisible={showPermissionBanner}
+          onEnable={() => {
+            // Trigger geolocation request by calling it again or simply reloading if easy
+            if ("geolocation" in navigator) {
+              navigator.geolocation.getCurrentPosition(() => window.location.reload(), (e) => console.error(e))
+            }
+          }}
+          onDismiss={() => setShowPermissionBanner(false)}
+        />
 
         <main className="w-full py-8 space-y-12">
           {/* Hero Section */}
@@ -153,7 +235,11 @@ export default function FeedPage() {
                     >
                       {availableFoodItems.map((item, index) => (
                         <div key={`available-food-${item.id}-${index}`} className="flex-none w-[320px] md:w-[380px]">
-                          <FoodCard post={item} onUpdate={fetchFeed} />
+                          <FoodCard
+                            post={item}
+                            onUpdate={fetchFeed}
+                            userLocation={latitude && longitude ? { lat: latitude, lng: longitude } : undefined}
+                          />
                         </div>
                       ))}
                     </div>

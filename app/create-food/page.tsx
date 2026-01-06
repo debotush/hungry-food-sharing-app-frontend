@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge"
 import { SpiceLevel } from "@/types/messaging"
 import Link from "next/link"
 import imageCompression from "browser-image-compression"
+import { useGeolocation } from "@/hooks/use-geolocation"
 
 // Image upload constraints
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB per image
@@ -41,6 +42,10 @@ function CreateFoodForm() {
   const hungerBroadcastId = searchParams.get('hungerBroadcastId')
   const [isLoading, setIsLoading] = useState(false)
   const [isPaid, setIsPaid] = useState(false)
+
+  // Geolocation
+  const { latitude, longitude } = useGeolocation()
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -216,6 +221,12 @@ function CreateFoodForm() {
 
       formDataToSend.append('spiceLevel', formData.spiceLevel)
       formDataToSend.append('ingredients', formData.ingredients)
+
+      // Append coordinates if available
+      if (latitude && longitude) {
+        formDataToSend.append('latitude', latitude.toString())
+        formDataToSend.append('longitude', longitude.toString())
+      }
 
       // Append all image files
       selectedFiles.forEach(file => {

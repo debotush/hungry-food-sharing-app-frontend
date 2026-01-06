@@ -12,6 +12,7 @@ import { MapModal } from "@/components/ui/map-modal"
 import { SpiceLevel } from "@/types/messaging"
 import { formatReadableDate, formatRelativeTime, getFreshnessLevel } from "@/lib/utils"
 import { getAuthToken } from "@/lib/api"
+import { calculateDistance } from "@/lib/geo" // Import geo util
 
 interface FoodCardProps {
   post: {
@@ -20,6 +21,8 @@ interface FoodCardProps {
     description: string
     quantity: string
     location: string
+    latitude?: number // Add optional lat/lng
+    longitude?: number
     expiryDate: string
     status: "available" | "requested" | "taken"
     ownerName: string
@@ -32,12 +35,19 @@ interface FoodCardProps {
     cookedAt?: string
   }
   onUpdate?: () => void
+  userLocation?: { lat: number; lng: number } // Add userLocation prop
 }
 
-export function FoodCard({ post, onUpdate }: FoodCardProps) {
+export function FoodCard({ post, onUpdate, userLocation }: FoodCardProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [isRequesting, setIsRequesting] = useState(false)
+
+
+  // Calculate distance if coordinates are available
+  const distance = (userLocation && post.latitude && post.longitude)
+    ? calculateDistance(userLocation.lat, userLocation.lng, post.latitude, post.longitude)
+    : null
   const [isMapOpen, setIsMapOpen] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [imageError, setImageError] = useState(false)
@@ -96,11 +106,17 @@ export function FoodCard({ post, onUpdate }: FoodCardProps) {
         description: "The food owner will be notified of your request.",
       })
       onUpdate?.()
-    } catch (error) {
+    } catch (error: any) {
+      let description = error.message || "Something went wrong."
+
+      if (error.status === 409) {
+        description = "You have already requested this item or it's no longer available for request."
+      }
+
       toast({
         variant: "destructive",
         title: "Request failed",
-        description: error instanceof Error ? error.message : "Something went wrong.",
+        description,
       })
     } finally {
       setIsRequesting(false)
@@ -284,9 +300,14 @@ export function FoodCard({ post, onUpdate }: FoodCardProps) {
 
             {/* Location */}
             <div className="flex items-center justify-between gap-2 text-sm">
-              <div className="flex items-center gap-2 text-gray-300">
-                <MapPin className="h-4 w-4 text-blue-400 flex-shrink-0" />
-                <span className="text-xs truncate">{post.location}</span>
+              <div className="flex items-center text-xs text-muted-foreground">
+                <MapPin className="mr-1 h-3 w-3" />
+                <span className="truncate max-w-[150px]">{post.location}</span>
+                {distance !== null && (
+                  <Badge variant="secondary" className="ml-2 h-5 text-[10px] px-1.5 bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-blue-200">
+                    {distance} km away
+                  </Badge>
+                )}
               </div>
               <button
                 className="text-xs text-blue-400 hover:text-blue-300 transition-colors"

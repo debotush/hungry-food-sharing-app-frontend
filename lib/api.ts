@@ -191,8 +191,15 @@ async function apiRequest<T>(endpoint: string, options: RequestOptions = {}, ret
     }
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: "An error occurred" }))
-      throw new Error(error.message || "Request failed")
+      const errorData = await response.json().catch(() => ({ message: "An error occurred" }))
+      console.error(`API Error [${response.status}] ${endpoint}:`, errorData)
+
+      const errorMessage = errorData.message || `Request failed with status ${response.status}`
+      const error = new Error(errorMessage) as any
+      error.status = response.status
+      error.data = errorData
+
+      throw error
     }
 
     return response.json()
@@ -242,8 +249,20 @@ export const api = {
   getMe: () => apiRequest("/auth/me"),
 
   // Feed
-  getFeed: (type?: "all" | "food" | "hunger") =>
-    apiRequest(`/feed${type ? `?type=${type}` : ""}`, { requiresAuth: false }),
+  getFeed: (type: "all" | "food" | "hunger" = "all", location?: { lat: number; lng: number; radius?: number }) => {
+    const params = new URLSearchParams({ type })
+    if (location) {
+      params.append('lat', location.lat.toString())
+      params.append('lng', location.lng.toString())
+      if (location.radius) {
+        params.append('radius', location.radius.toString())
+      }
+    }
+    return apiRequest(`/feed?${params.toString()}`, { requiresAuth: false })
+  },
+
+  getMyPosts: () =>
+    apiRequest("/my-posts", { requiresAuth: true }),
 
   // Food Posts
   createFoodPost: (data: any) => {
@@ -300,8 +319,6 @@ export const api = {
 
   // User
   getMyRequests: () => apiRequest("/my-requests"),
-
-  getMyPosts: () => apiRequest("/my-posts"),
 
   getMyHungerBroadcasts: () => apiRequest("/my-hunger-broadcasts"),
 

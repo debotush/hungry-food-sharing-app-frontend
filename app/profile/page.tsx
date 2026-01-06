@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast"
 import { api } from "@/lib/api"
 import { Loader2, User, Mail, Calendar, Utensils, Heart, MessageSquare, Award } from "lucide-react"
 import { formatMonthYear } from "@/lib/utils"
+import { Slider } from "@/components/ui/slider"
+import { Settings, Save } from "lucide-react"
 
 interface Profile {
   name: string
@@ -23,6 +25,7 @@ interface Profile {
     hungerBroadcasts: number
     impactScore: number
   }
+  preferredRadiusKm: number
 }
 
 export default function ProfilePage() {
@@ -30,12 +33,15 @@ export default function ProfilePage() {
   const { toast } = useToast()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [radius, setRadius] = useState<number>(1)
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const data = (await api.getProfile()) as Profile
         setProfile(data)
+        setRadius(data.preferredRadiusKm || 1)
       } catch (error) {
         toast({
           variant: "destructive",
@@ -52,6 +58,26 @@ export default function ProfilePage() {
 
   const handleLogout = async () => {
     await api.logout()
+  }
+
+  const handleSaveRadius = async () => {
+    setIsSaving(true)
+    try {
+      await api.updateProfile({ preferredRadiusKm: radius })
+      setProfile(prev => prev ? { ...prev, preferredRadiusKm: radius } : null)
+      toast({
+        title: "Settings saved",
+        description: `Your search radius is now set to ${radius} km.`,
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to save settings",
+        description: error instanceof Error ? error.message : "Something went wrong.",
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   if (isLoading) {
@@ -137,6 +163,45 @@ export default function ProfilePage() {
                     <p className="text-sm text-muted-foreground">Member since</p>
                     <p className="font-medium">{formatMonthYear(profile.joinDate)}</p>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Feed Settings */}
+            <Card className="border-border/50">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Feed Settings
+                </CardTitle>
+                <Button
+                  size="sm"
+                  onClick={handleSaveRadius}
+                  disabled={isSaving || radius === profile?.preferredRadiusKm}
+                  className="h-8 gap-2"
+                >
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  Save
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-medium mb-4">Search Radius</h3>
+                  <p className="text-xs text-muted-foreground mb-6">
+                    Set your default search area for finding food and viewing hunger broadcasts.
+                  </p>
+                  <Slider
+                    value={radius}
+                    min={1}
+                    max={50}
+                    step={1}
+                    onValueChange={setRadius}
+                    label="Maximum distance"
+                  />
                 </div>
               </CardContent>
             </Card>

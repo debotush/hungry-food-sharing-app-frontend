@@ -130,6 +130,8 @@ export interface FoodFeedItem {
     spiceLevel: SpiceLevel
     ingredients: string
     cookedAt?: string
+    latitude?: number
+    longitude?: number
 }
 
 export interface HungerFeedItem {
