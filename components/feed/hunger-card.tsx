@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
-import { MapPin, Clock, User, Flame } from "lucide-react"
+import { MapPin, Map, Clock, User, Flame } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { formatRelativeTime } from "@/lib/utils"
 import { useState } from "react"
@@ -141,17 +141,18 @@ export function HungerCard({ post }: HungerCardProps) {
             {/* Location */}
             <div className="flex items-center justify-between gap-2 text-sm">
               <div className="flex items-center gap-2 text-gray-300">
-                <MapPin className="h-4 w-4 text-blue-400 flex-shrink-0" />
+                <MapPin className="h-4 w-4 text-secondary flex-shrink-0" />
                 <span className="text-xs truncate">{post.location}</span>
               </div>
               <button
-                className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                className="p-1.5 rounded-full bg-zinc-800/50 text-secondary hover:bg-secondary/10 hover:text-secondary hover:scale-110 transition-all border border-zinc-700/50"
                 onClick={(e) => {
                   e.stopPropagation()
                   setIsMapOpen(true)
                 }}
+                title="View on Map"
               >
-                Map
+                <Map className="h-3.5 w-3.5" />
               </button>
             </div>
 

@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Clock, User, Utensils, Play, MessageCircle, Flame, Leaf, CookingPot, ChefHat } from "lucide-react"
+import { MapPin, Map, Clock, User, Utensils, Play, MessageCircle, Flame, Leaf, CookingPot, ChefHat } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { api } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
@@ -304,19 +304,20 @@ export function FoodCard({ post, onUpdate, userLocation }: FoodCardProps) {
                 <MapPin className="mr-1 h-3 w-3" />
                 <span className="truncate max-w-[150px]">{post.location}</span>
                 {distance !== null && (
-                  <Badge variant="secondary" className="ml-2 h-5 text-[10px] px-1.5 bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-blue-200">
+                  <Badge variant="secondary" className="ml-2 h-5 text-[10px] px-1.5 bg-secondary/10 text-secondary hover:bg-secondary/20 border-secondary/20">
                     {distance} km away
                   </Badge>
                 )}
               </div>
               <button
-                className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                className="p-1.5 rounded-full bg-zinc-800/50 text-secondary hover:bg-secondary/10 hover:text-secondary hover:scale-110 transition-all border border-zinc-700/50"
                 onClick={(e) => {
                   e.stopPropagation()
                   setIsMapOpen(true)
                 }}
+                title="View on Map"
               >
-                Map
+                <Map className="h-3.5 w-3.5" />
               </button>
             </div>
 
