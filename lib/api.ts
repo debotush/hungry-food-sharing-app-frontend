@@ -74,7 +74,7 @@ const logout = (): void => {
   removeExpiresAt()
 
   if (typeof window !== "undefined") {
-    window.location.href = "/login"
+    window.location.href = "/feed"
   }
 }
 
