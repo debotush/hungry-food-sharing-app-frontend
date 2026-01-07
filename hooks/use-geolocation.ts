@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 
 interface GeolocationState {
     latitude: number | null
@@ -15,7 +15,7 @@ export function useGeolocation() {
         loading: true,
     })
 
-    useEffect(() => {
+    const request = useCallback(() => {
         if (!("geolocation" in navigator)) {
             setState((prev) => ({
                 ...prev,
@@ -24,6 +24,8 @@ export function useGeolocation() {
             }))
             return
         }
+
+        setState(prev => ({ ...prev, loading: true }))
 
         const handleSuccess = (position: GeolocationPosition) => {
             setState({
@@ -49,5 +51,9 @@ export function useGeolocation() {
         })
     }, [])
 
-    return state
+    useEffect(() => {
+        request()
+    }, [request])
+
+    return { ...state, request }
 }

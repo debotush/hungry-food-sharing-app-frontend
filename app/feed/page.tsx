@@ -22,7 +22,7 @@ import { LocationPermissionBanner } from "@/components/feed/location-permission-
 export default function FeedPage() {
   const { toast } = useToast()
   const { lastMessage } = useWebSocket()
-  const { latitude, longitude, error: locationError } = useGeolocation()
+  const { latitude, longitude, error: locationError, request } = useGeolocation()
   const [showPermissionBanner, setShowPermissionBanner] = useState(false)
 
   const [allFeed, setAllFeed] = useState<FeedItem[]>([])
@@ -180,12 +180,7 @@ export default function FeedPage() {
 
         <LocationPermissionBanner
           isVisible={showPermissionBanner}
-          onEnable={() => {
-            // Trigger geolocation request by calling it again or simply reloading if easy
-            if ("geolocation" in navigator) {
-              navigator.geolocation.getCurrentPosition(() => window.location.reload(), (e) => console.error(e))
-            }
-          }}
+          onEnable={request}
           onDismiss={() => setShowPermissionBanner(false)}
         />
 

@@ -14,12 +14,13 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { api } from "@/lib/api"
-import { Loader2, ArrowLeft, Banknote, CreditCard, Wallet, Flame, ChefHat } from "lucide-react"
+import { Loader2, ArrowLeft, Banknote, CreditCard, Wallet, Flame, ChefHat, MapPin, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { SpiceLevel } from "@/types/messaging"
 import Link from "next/link"
 import imageCompression from "browser-image-compression"
 import { useGeolocation } from "@/hooks/use-geolocation"
+import { cn } from "@/lib/utils"
 
 // Image upload constraints
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB per image
@@ -44,7 +45,7 @@ function CreateFoodForm() {
   const [isPaid, setIsPaid] = useState(false)
 
   // Geolocation
-  const { latitude, longitude } = useGeolocation()
+  const { latitude, longitude, error: geoError, loading: geoLoading, request: reloadLocation } = useGeolocation()
 
   const [formData, setFormData] = useState({
     title: "",
@@ -78,6 +79,10 @@ function CreateFoodForm() {
     if (!formData.location.trim()) newErrors.location = "Pickup location is required"
     if (!formData.expiryDate) newErrors.expiryDate = "Expiry date is required"
     if (!formData.expiryTime) newErrors.expiryTime = "Expiry time is required"
+
+    if (!latitude || !longitude) {
+      newErrors.geo = "GPS coordinates are required to post food"
+    }
 
     if (formData.cookedDate && formData.cookedTime) {
       const cookedDateTime = new Date(`${formData.cookedDate}T${formData.cookedTime}`)
@@ -226,6 +231,14 @@ function CreateFoodForm() {
       if (latitude && longitude) {
         formDataToSend.append('latitude', latitude.toString())
         formDataToSend.append('longitude', longitude.toString())
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Location missing",
+          description: "Please acquire your location before posting.",
+        })
+        setIsLoading(false)
+        return
       }
 
       // Append all image files
@@ -592,10 +605,66 @@ function CreateFoodForm() {
                   <p className="text-[10px] text-muted-foreground italic">Providing accurate cooking time helps others know the food is fresh.</p>
                 </div>
 
+                {/* Location Status Section */}
+                <div className={cn(
+                  "p-4 rounded-xl border transition-all duration-300",
+                  (latitude && longitude)
+                    ? "bg-emerald-500/5 border-emerald-500/20"
+                    : geoError
+                      ? "bg-destructive/5 border-destructive/20"
+                      : "bg-zinc-500/5 border-white/5"
+                )}>
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
+                        (latitude && longitude) ? "bg-emerald-500/20 text-emerald-500" : geoError ? "bg-destructive/20 text-destructive" : "bg-zinc-800 text-zinc-500"
+                      )}>
+                        {geoLoading ? (
+                          <RefreshCw className="h-5 w-5 animate-spin" />
+                        ) : (latitude && longitude) ? (
+                          <CheckCircle2 className="h-5 w-5" />
+                        ) : geoError ? (
+                          <AlertCircle className="h-5 w-5" />
+                        ) : (
+                          <MapPin className="h-5 w-5" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-white">
+                          {(latitude && longitude) ? "Location Ready" : geoLoading ? "Acquiring GPS..." : geoError ? "Location Error" : "GPS Required"}
+                        </p>
+                        <p className="text-[10px] text-zinc-500 font-medium">
+                          {(latitude && longitude)
+                            ? "Coordinates successfully captured"
+                            : geoError
+                              ? "Please enable permissions or check GPS"
+                              : "Needed to verify your post area"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={reloadLocation}
+                      disabled={geoLoading}
+                      className="h-8 rounded-full border-white/10 hover:bg-white/5 text-[10px] font-bold"
+                    >
+                      {geoLoading ? "Checking..." : (latitude && longitude) ? "Update" : "Retry"}
+                    </Button>
+                  </div>
+                  {errors.geo && <p className="text-xs text-destructive mt-2 font-bold ml-1">{errors.geo}</p>}
+                </div>
+
                 <Button
                   type="submit"
-                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 glow-hover"
-                  disabled={isLoading}
+                  className={cn(
+                    "w-full h-12 rounded-xl font-bold transition-all shadow-lg",
+                    (latitude && longitude) ? "bg-primary text-primary-foreground hover:bg-primary/90 glow-primary" : "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-white/5"
+                  )}
+                  disabled={isLoading || geoLoading || (!latitude || !longitude)}
                 >
                   {isLoading ? (
                     <>

@@ -15,13 +15,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast"
 import { useGeolocation } from "@/hooks/use-geolocation"
 import { api } from "@/lib/api"
-import { Loader2, ArrowLeft, Flame } from "lucide-react"
+import { Loader2, ArrowLeft, Flame, MapPin, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
+import { cn } from "@/lib/utils"
 
 export default function CreateHungerPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const { latitude, longitude } = useGeolocation()
+  const { latitude, longitude, error: geoError, loading: geoLoading, request: reloadLocation } = useGeolocation()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     message: "",
@@ -35,7 +36,11 @@ export default function CreateHungerPage() {
 
     if (!formData.message.trim()) newErrors.message = "Message is required"
     if (formData.message.length > 140) newErrors.message = "Message must be 140 characters or less"
-    if (!formData.location.trim()) newErrors.location = "Location is required"
+    if (!formData.location.trim()) newErrors.location = "Area is required"
+
+    if (!latitude || !longitude) {
+      newErrors.geo = "GPS coordinates are required to broadcast"
+    }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -175,10 +180,66 @@ export default function CreateHungerPage() {
                   </ul>
                 </div>
 
+                {/* Location Status Section */}
+                <div className={cn(
+                  "p-4 rounded-xl border transition-all duration-300",
+                  (latitude && longitude)
+                    ? "bg-emerald-500/5 border-emerald-500/20"
+                    : geoError
+                      ? "bg-destructive/5 border-destructive/20"
+                      : "bg-zinc-500/5 border-white/5"
+                )}>
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
+                        (latitude && longitude) ? "bg-emerald-500/20 text-emerald-500" : geoError ? "bg-destructive/20 text-destructive" : "bg-zinc-800 text-zinc-500"
+                      )}>
+                        {geoLoading ? (
+                          <RefreshCw className="h-5 w-5 animate-spin" />
+                        ) : (latitude && longitude) ? (
+                          <CheckCircle2 className="h-5 w-5" />
+                        ) : geoError ? (
+                          <AlertCircle className="h-5 w-5" />
+                        ) : (
+                          <MapPin className="h-5 w-5" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-white">
+                          {(latitude && longitude) ? "Location Ready" : geoLoading ? "Acquiring GPS..." : geoError ? "Location Error" : "GPS Required"}
+                        </p>
+                        <p className="text-[10px] text-zinc-500 font-medium">
+                          {(latitude && longitude)
+                            ? "Coordinates successfully captured"
+                            : geoError
+                              ? "Please enable permissions or check GPS"
+                              : "Needed to verify your post area"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={reloadLocation}
+                      disabled={geoLoading}
+                      className="h-8 rounded-full border-white/10 hover:bg-white/5 text-[10px] font-bold"
+                    >
+                      {geoLoading ? "Checking..." : (latitude && longitude) ? "Update" : "Retry"}
+                    </Button>
+                  </div>
+                  {errors.geo && <p className="text-xs text-destructive mt-2 font-bold ml-1">{errors.geo}</p>}
+                </div>
+
                 <Button
                   type="submit"
-                  className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                  disabled={isLoading}
+                  className={cn(
+                    "w-full h-12 rounded-xl font-bold transition-all shadow-lg",
+                    (latitude && longitude) ? "bg-secondary text-secondary-foreground hover:bg-secondary/90 glow-secondary" : "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-white/5"
+                  )}
+                  disabled={isLoading || geoLoading || (!latitude || !longitude)}
                 >
                   {isLoading ? (
                     <>
