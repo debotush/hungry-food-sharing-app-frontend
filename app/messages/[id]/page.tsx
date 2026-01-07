@@ -172,7 +172,10 @@ export default function ConversationPage() {
         return (
             <AuthGuard>
                 <div className="min-h-screen bg-background flex items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <div className="relative">
+                        <div className="h-16 w-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+                        <Loader2 className="h-6 w-6 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+                    </div>
                 </div>
             </AuthGuard>
         )
@@ -184,52 +187,57 @@ export default function ConversationPage() {
                 <TopNav />
 
                 {/* Header */}
-                <div className="border-b border-border bg-card/95 backdrop-blur sticky top-16 z-40">
-                    <div className="container max-w-3xl mx-auto px-4 py-3">
-                        <div className="flex items-center gap-3">
+                <div className="border-b border-white/10 bg-card/60 backdrop-blur-xl sticky top-16 z-40 shadow-sm transition-all duration-300">
+                    <div className="container max-w-3xl mx-auto px-4 py-4">
+                        <div className="flex items-center gap-4">
                             <Link href="/messages">
-                                <Button variant="ghost" size="icon" className="h-9 w-9">
-                                    <ArrowLeft className="h-4 w-4" />
+                                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-white/10 transition-colors">
+                                    <ArrowLeft className="h-5 w-5 text-zinc-300" />
                                 </Button>
                             </Link>
                             <div className="flex-1 min-w-0">
-                                <h2 className="font-semibold text-sm truncate">
-                                    {conversation?.foodPostTitle || conversation?.status === 'resolved' ? 'Resolved Broadcast' : (conversation?.hungerBroadcastTitle || "Conversation")}
+                                <h2 className="font-bold text-base text-white truncate leading-tight">
+                                    {conversation?.foodPostTitle || (conversation?.status === 'resolved' ? 'Resolved Broadcast' : (conversation?.hungerBroadcastTitle || "Conversation"))}
                                 </h2>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-xs font-semibold text-primary/80 flex items-center gap-1">
+                                    <span className="h-1 w-1 rounded-full bg-primary animate-pulse" />
                                     {conversation?.otherParticipantName}
                                 </p>
                             </div>
-                            {conversation?.foodPostId && (
-                                <Link href={`/food/${conversation.foodPostId}`}>
-                                    <Button variant="outline" size="sm">
-                                        View Food
-                                    </Button>
-                                </Link>
-                            )}
-                            {conversation?.hungerBroadcastId && (
-                                <div className="flex gap-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => router.push(`/feed`)}
-                                    >
-                                        View Feed
-                                    </Button>
 
-                                    {isHungerOwner && (
-                                        <Button
-                                            variant="default"
-                                            size="sm"
-                                            className="bg-primary text-primary-foreground hover:bg-primary/90 glow-hover"
-                                            onClick={handleResolve}
-                                            disabled={resolveLoading || conversation?.status === 'resolved'}
-                                        >
-                                            {resolveLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Mark Resolved"}
+                            <div className="flex items-center gap-2">
+                                {conversation?.foodPostId && (
+                                    <Link href={`/food/${conversation.foodPostId}`}>
+                                        <Button variant="outline" size="sm" className="h-9 px-4 rounded-full border-white/10 bg-white/5 hover:bg-white/10 text-xs font-bold transition-all">
+                                            View Food
                                         </Button>
-                                    )}
-                                </div>
-                            )}
+                                    </Link>
+                                )}
+                                {conversation?.hungerBroadcastId && (
+                                    <div className="flex gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-9 px-4 rounded-full border-white/10 bg-white/5 hover:bg-white/10 text-xs font-bold transition-all"
+                                            onClick={() => router.push(`/feed`)}
+                                        >
+                                            View Feed
+                                        </Button>
+
+                                        {isHungerOwner && (
+                                            <Button
+                                                variant="default"
+                                                size="sm"
+                                                className="h-9 px-4 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-bold transition-all shadow-lg glow-primary"
+                                                onClick={handleResolve}
+                                                disabled={resolveLoading || conversation?.status === 'resolved'}
+                                            >
+                                                {resolveLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Resolve"}
+                                            </Button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -6,7 +6,7 @@ import { BottomNav } from "@/components/layout/bottom-nav"
 import { AuthGuard } from "@/components/layout/auth-guard"
 import { FoodCard } from "@/components/feed/food-card"
 import { HungerCard } from "@/components/feed/hunger-card"
-import { api } from "@/lib/api"
+import { api, getAuthToken } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -65,6 +65,12 @@ export default function FeedPage() {
 
   // Fetch user profile to get preferred radius & user ID (if logged in)
   useEffect(() => {
+    const token = getAuthToken()
+    if (!token) {
+      setIsLoading(false) // No need to wait for profile if guest
+      return
+    }
+
     const fetchProfile = async () => {
       try {
         const data = await api.getProfile() as any

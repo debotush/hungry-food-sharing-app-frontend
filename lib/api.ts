@@ -60,7 +60,7 @@ const removeExpiresAt = (): void => {
 // Check if token needs refresh (expires in less than 1 minute)
 const isTokenExpiringSoon = (): boolean => {
   const expiresAt = getExpiresAt()
-  if (!expiresAt) return true
+  if (!expiresAt) return false // No token, so not "expiring soon"
 
   const now = new Date()
   const timeUntilExpiry = expiresAt.getTime() - now.getTime()
@@ -93,7 +93,8 @@ const refreshAccessToken = async (): Promise<string | null> => {
     const refreshToken = getRefreshToken()
 
     if (!refreshToken) {
-      logout()
+      // Don't call logout() here, just return null. 
+      // logout() triggers a redirect which causes loops on public pages.
       return null
     }
 
@@ -157,8 +158,11 @@ async function apiRequest<T>(endpoint: string, options: RequestOptions = {}, ret
   }
 
   if (requiresAuth) {
+    const refreshToken = getRefreshToken()
+
     // Check if token needs refresh before making request
-    if (isTokenExpiringSoon()) {
+    // Only attempt refresh if we have a refresh token
+    if (isTokenExpiringSoon() && refreshToken) {
       const newToken = await refreshAccessToken()
       if (newToken) {
         headers["Authorization"] = `Bearer ${newToken}`
@@ -167,6 +171,9 @@ async function apiRequest<T>(endpoint: string, options: RequestOptions = {}, ret
       const token = getAccessToken()
       if (token) {
         headers["Authorization"] = `Bearer ${token}`
+      } else if (requiresAuth) {
+        // If no token at all and auth is required, we can't proceed reliably
+        throw new Error("Unauthorized: No access token available")
       }
     }
   }
