@@ -11,7 +11,15 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { api } from "@/lib/api"
-import { Loader2, Clock, MapPin, Trash2, Users, Flame, CookingPot } from "lucide-react"
+import { Loader2, Clock, MapPin, Trash2, Users, Flame, CookingPot, CheckCircle } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { SpiceLevel } from "@/types/messaging"
 import { formatRelativeTime } from "@/lib/utils"
 
@@ -45,6 +53,8 @@ export default function MyPostsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null)
   const [resolveLoading, setResolveLoading] = useState<string | null>(null)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [broadcastToDelete, setBroadcastToDelete] = useState<HungerBroadcast | null>(null)
 
   const fetchData = async () => {
     setIsLoading(true)
@@ -86,16 +96,18 @@ export default function MyPostsPage() {
     fetchData()
   }, [])
 
-  const handleDeleteHunger = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this broadcast?")) return
+  const handleDeleteHunger = async () => {
+    if (!broadcastToDelete) return
 
-    setDeleteLoading(id)
+    setDeleteLoading(broadcastToDelete.id)
     try {
-      await api.deleteHungerBroadcast(id)
+      await api.deleteHungerBroadcast(broadcastToDelete.id)
       toast({
         title: "Broadcast deleted",
         description: "Your hunger broadcast has been removed.",
       })
+      setIsDeleteModalOpen(false)
+      setBroadcastToDelete(null)
       fetchData()
     } catch (error) {
       toast({
@@ -285,7 +297,10 @@ export default function MyPostsPage() {
                             <Button
                               variant="outline"
                               className="flex-1 text-destructive hover:bg-destructive/10 bg-transparent"
-                              onClick={() => handleDeleteHunger(broadcast.id)}
+                              onClick={() => {
+                                setBroadcastToDelete(broadcast);
+                                setIsDeleteModalOpen(true);
+                              }}
                               disabled={deleteLoading === broadcast.id || resolveLoading === broadcast.id}
                             >
                               {deleteLoading === broadcast.id ? (
@@ -313,6 +328,32 @@ export default function MyPostsPage() {
 
         <BottomNav />
       </div>
+
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Hunger Broadcast</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete your broadcast? <span className="font-medium text-foreground italic">"{broadcastToDelete?.message}"</span> This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)} disabled={!!deleteLoading} className="bg-transparent">
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteHunger} disabled={!!deleteLoading}>
+              {deleteLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Broadcast"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AuthGuard>
   )
 }

@@ -50,20 +50,25 @@ export function HungerCard({ post, userLocation }: HungerCardProps) {
     }
 
     try {
-      // Record the offer on the backend
-      await api.offerFood(post.id)
+      // Record the offer on the backend. 
+      // If we get a 409, it means we already offered help, so we just proceed to the chat.
+      try {
+        await api.offerFood(post.id)
+      } catch (error: any) {
+        if (error.status !== 409) throw error
+      }
 
-      // Start the conversation linked to this broadcast
+      // Start or get the conversation linked to this broadcast
       const conversation = await api.createConversation({
         otherParticipantId: post.ownerId,
         hungerBroadcastId: post.id,
       })
       router.push(`/messages/${(conversation as any).id}`)
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Failed to start conversation",
-        description: error instanceof Error ? error.message : "Something went wrong.",
+        title: "Action failed",
+        description: error.message || "Something went wrong.",
       })
     }
   }

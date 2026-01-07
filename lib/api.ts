@@ -192,7 +192,13 @@ async function apiRequest<T>(endpoint: string, options: RequestOptions = {}, ret
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: "An error occurred" }))
-      console.error(`API Error [${response.status}] ${endpoint}:`, errorData)
+
+      // Use warn for 4xx (client/logic cases), error for 5xx (server/unexpected cases)
+      if (response.status >= 500) {
+        console.error(`API Error [${response.status}] ${endpoint}:`, errorData)
+      } else {
+        console.warn(`API Status [${response.status}] ${endpoint}:`, errorData)
+      }
 
       const errorMessage = errorData.message || `Request failed with status ${response.status}`
       const error = new Error(errorMessage) as any

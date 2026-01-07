@@ -70,14 +70,47 @@ export function TopNav() {
         setUserName(null)
       }
     }
-    fetchUser()
 
-    // ... existing fetches ...
+    const fetchCounts = async () => {
+      try {
+        const [unread, notifications, pending, unviewed] = await Promise.all([
+          api.getUnreadCount(),
+          api.getUnreadNotificationsCount(),
+          api.getPendingRequestsCount(),
+          api.getMyRequestsUnviewedCount()
+        ])
+        setUnreadCount((unread as any).unreadCount || 0)
+        setUnreadNotificationCount((notifications as any).unreadCount || 0)
+        setPendingRequestCount((pending as any).count || 0)
+        setMyRequestsUnviewedCount((unviewed as any).count || 0)
+      } catch (error) {
+        console.error("Failed to fetch counts:", error)
+      }
+    }
+
+    fetchUser()
+    fetchCounts()
   }, [isLoggedIn])
 
-  // Fetch counts... (wrap existing count fetches in isLoggedIn check or rely on api failure handling)
-  // For brevity, I'll rely on the existing silent failure blocks in previous useEffects, 
-  // but it's cleaner to add the check. I will leave them as is for now since they handle errors silently.
+  // WebSocket Listener for real-time badge updates
+  useEffect(() => {
+    if (!lastMessage || !isLoggedIn) return
+
+    switch (lastMessage.type) {
+      case 'chat':
+        setUnreadCount(prev => prev + 1)
+        break
+      case 'notification':
+        setUnreadNotificationCount(prev => prev + 1)
+        break
+      case 'request_created':
+        setPendingRequestCount(prev => prev + 1)
+        break
+      case 'request_updated':
+        setMyRequestsUnviewedCount(prev => prev + 1)
+        break
+    }
+  }, [lastMessage, isLoggedIn])
 
   const navLinks = [
     { href: "/feed", label: "Home", protected: false },
