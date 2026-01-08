@@ -28,7 +28,7 @@ export default function FeedPage() {
   const [allFeed, setAllFeed] = useState<FeedItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  const [preferredRadius, setPreferredRadius] = useState<number | undefined>()
+  const [preferredRadius, setPreferredRadius] = useState<number>(5)
   const availableFoodScrollRef = useRef<HTMLDivElement>(null)
   const hungerScrollRef = useRef<HTMLDivElement>(null)
   const expiredFoodScrollRef = useRef<HTMLDivElement>(null)
@@ -39,11 +39,8 @@ export default function FeedPage() {
       // Only pass location params if both lat and lng are available
       let data;
       if (latitude && longitude) {
-        // If we have a preferred radius from profile, we can be explicit or omit it to let backend use it
-        // The backend guide says it uses preference if no radius param is provided.
-        // We'll omit it to test the backend preference logic for logged-in users.
-        console.log('🌍 Fetching feed with location:', { lat: latitude, lng: longitude })
-        data = await api.getFeed("all", { lat: latitude, lng: longitude })
+        console.log('🌍 Fetching feed with location:', { lat: latitude, lng: longitude, radius: preferredRadius })
+        data = await api.getFeed("all", { lat: latitude, lng: longitude, radius: preferredRadius })
       } else {
         console.log('🌍 Fetching global feed (no location)')
         data = await api.getFeed("all")

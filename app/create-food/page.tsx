@@ -80,8 +80,8 @@ function CreateFoodForm() {
     if (!formData.expiryDate) newErrors.expiryDate = "Expiry date is required"
     if (!formData.expiryTime) newErrors.expiryTime = "Expiry time is required"
 
-    if (!latitude || !longitude) {
-      newErrors.geo = "GPS coordinates are required to post food"
+    if (!latitude || !longitude || latitude === 0 || longitude === 0) {
+      newErrors.geo = "Valid GPS coordinates are required to post food"
     }
 
     if (formData.cookedDate && formData.cookedTime) {
@@ -228,7 +228,7 @@ function CreateFoodForm() {
       formDataToSend.append('ingredients', formData.ingredients)
 
       // Append coordinates if available
-      if (latitude && longitude) {
+      if (latitude && longitude && latitude !== 0 && longitude !== 0) {
         formDataToSend.append('latitude', latitude.toString())
         formDataToSend.append('longitude', longitude.toString())
       } else {

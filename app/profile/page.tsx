@@ -34,7 +34,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const [radius, setRadius] = useState<number>(1)
+  const [radius, setRadius] = useState<number>(5)
 
   useEffect(() => {
     const fetchProfile = async () => {

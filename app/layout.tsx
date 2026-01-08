@@ -1,7 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Space_Grotesk, Inter } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
 
@@ -21,23 +20,14 @@ export const metadata: Metadata = {
   title: "hungry - Share food. Kill hunger.",
   description:
     "A food-sharing platform where students can share leftover food and help those in need. Reduce waste, fight hunger.",
-  generator: "v0.app",
+  generator: "Cairo",
   icons: {
     icon: [
-      {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
       {
         url: "/icon.svg",
         type: "image/svg+xml",
       },
     ],
-    apple: "/apple-icon.png",
   },
 }
 
@@ -51,7 +41,6 @@ export default function RootLayout({
       <body className={`${inter.className} antialiased`} suppressHydrationWarning>
         {children}
         <Toaster />
-        <Analytics />
       </body>
     </html>
   )

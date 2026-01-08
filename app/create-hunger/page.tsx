@@ -38,8 +38,8 @@ export default function CreateHungerPage() {
     if (formData.message.length > 140) newErrors.message = "Message must be 140 characters or less"
     if (!formData.location.trim()) newErrors.location = "Area is required"
 
-    if (!latitude || !longitude) {
-      newErrors.geo = "GPS coordinates are required to broadcast"
+    if (!latitude || !longitude || latitude === 0 || longitude === 0) {
+      newErrors.geo = "Valid GPS coordinates are required to broadcast"
     }
 
     setErrors(newErrors)
@@ -54,10 +54,20 @@ export default function CreateHungerPage() {
     setIsLoading(true)
 
     try {
+      if (!latitude || !longitude || latitude === 0 || longitude === 0) {
+        toast({
+          variant: "destructive",
+          title: "Location missing",
+          description: "Please acquire your location before broadcasting.",
+        })
+        setIsLoading(false)
+        return
+      }
+
       await api.createHungerBroadcast({
         ...formData,
-        latitude,
-        longitude
+        latitude: parseFloat(latitude.toString()),
+        longitude: parseFloat(longitude.toString())
       })
 
       toast({
