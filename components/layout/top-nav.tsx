@@ -79,10 +79,12 @@ export function TopNav() {
           api.getPendingRequestsCount(),
           api.getMyRequestsUnviewedCount()
         ])
-        setUnreadCount((unread as any).unreadCount || 0)
-        setUnreadNotificationCount((notifications as any).unreadCount || 0)
-        setPendingRequestCount((pending as any).count || 0)
-        setMyRequestsUnviewedCount((unviewed as any).count || 0)
+        console.log("📊 Badge Counts Raw Data:", { unread, notifications, pending, unviewed })
+
+        setUnreadCount((unread as any).unreadCount || (unread as any).count || 0)
+        setUnreadNotificationCount((notifications as any).unreadCount || (notifications as any).count || 0)
+        setPendingRequestCount((pending as any).count || (pending as any).unreadCount || 0)
+        setMyRequestsUnviewedCount((unviewed as any).count || (unviewed as any).unreadCount || 0)
       } catch (error) {
         console.error("Failed to fetch counts:", error)
       }

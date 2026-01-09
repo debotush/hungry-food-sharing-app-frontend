@@ -96,10 +96,17 @@ export default function FoodDetailPage() {
       setPost(postData)
 
       if (postData.isOwner) {
-        const requestsData = (await api.getFoodRequests(params.id as string)) as Request[]
+        const requestsData = (await api.getFoodRequests(params.id as string)) as any[]
         console.log('📋 Requests data:', requestsData)
-        console.log('Is owner:', postData.isOwner, 'Requests count:', requestsData.length)
-        setRequests(requestsData)
+
+        // Normalize requests to handle backend field variations
+        const normalizedRequests = requestsData.map(r => ({
+          ...r,
+          requestDate: r.requestDate || r.createdAt || r.request_date || r.created_at
+        }))
+
+        console.log('Is owner:', postData.isOwner, 'Requests count:', normalizedRequests.length)
+        setRequests(normalizedRequests)
       } else {
         console.log('❌ Not owner, skipping requests fetch')
       }
@@ -537,7 +544,7 @@ export default function FoodDetailPage() {
                               <div className="flex-1">
                                 <p className="font-medium">{request.userName}</p>
                                 <p className="text-sm text-muted-foreground">
-                                  {new Date(request.requestDate).toLocaleString()}
+                                  {formatReadableDate(request.requestDate)}
                                 </p>
                               </div>
                               {request.status === "pending" ? (
