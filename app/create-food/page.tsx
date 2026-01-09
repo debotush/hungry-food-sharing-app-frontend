@@ -14,9 +14,9 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { api } from "@/lib/api"
-import { Loader2, ArrowLeft, Banknote, CreditCard, Wallet, Flame, ChefHat, MapPin, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react"
+import { Loader2, ArrowLeft, Banknote, CreditCard, Wallet, Flame, ChefHat, MapPin, RefreshCw, AlertCircle, CheckCircle2, Utensils } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { SpiceLevel } from "@/types/messaging"
+import { SpiceLevel, PackagingOption } from "@/types/messaging"
 import Link from "next/link"
 import imageCompression from "browser-image-compression"
 import { useGeolocation } from "@/hooks/use-geolocation"
@@ -60,6 +60,7 @@ function CreateFoodForm() {
     ingredients: "",
     cookedDate: new Date().toISOString().split('T')[0],
     cookedTime: new Date().toTimeString().slice(0, 5),
+    packaging: "container_provided" as PackagingOption,
   })
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
@@ -225,6 +226,7 @@ function CreateFoodForm() {
       formDataToSend.append('cookedAt', cookedAt.toISOString())
 
       formDataToSend.append('spiceLevel', formData.spiceLevel)
+      formDataToSend.append('packaging', formData.packaging)
       formDataToSend.append('ingredients', formData.ingredients)
 
       // Append coordinates if available
@@ -341,6 +343,55 @@ function CreateFoodForm() {
                         <span className="text-[10px] font-semibold uppercase">{level.label}</span>
                       </Button>
                     ))}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <Label>Packaging *</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <Button
+                      key="pkg-provided"
+                      type="button"
+                      variant={formData.packaging === "container_provided" ? "default" : "outline"}
+                      className={cn(
+                        "h-16 flex items-center justify-start gap-3 px-4 rounded-xl transition-all",
+                        formData.packaging === "container_provided" ? "border-2 border-primary bg-primary/5" : "border-border hover:border-border/80"
+                      )}
+                      onClick={() => setFormData({ ...formData, packaging: "container_provided" })}
+                    >
+                      <div className={cn(
+                        "p-2 rounded-lg",
+                        formData.packaging === "container_provided" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                      )}>
+                        <ChefHat className="h-5 w-5" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-semibold">Packaging Provided</p>
+                        <p className="text-[10px] text-muted-foreground font-medium text-wrap">I will provide the container</p>
+                      </div>
+                    </Button>
+
+                    <Button
+                      key="pkg-byo"
+                      type="button"
+                      variant={formData.packaging === "bring_own_container" ? "default" : "outline"}
+                      className={cn(
+                        "h-16 flex items-center justify-start gap-3 px-4 rounded-xl transition-all",
+                        formData.packaging === "bring_own_container" ? "border-2 border-primary bg-primary/5" : "border-border hover:border-border/80"
+                      )}
+                      onClick={() => setFormData({ ...formData, packaging: "bring_own_container" })}
+                    >
+                      <div className={cn(
+                        "p-2 rounded-lg",
+                        formData.packaging === "bring_own_container" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                      )}>
+                        <Utensils className="h-5 w-5" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-semibold">Bring Your Own Container</p>
+                        <p className="text-[10px] text-muted-foreground font-medium text-wrap">Please bring your own container</p>
+                      </div>
+                    </Button>
                   </div>
                 </div>
 

@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useState } from "react"
 import Image from "next/image"
 import { MapModal } from "@/components/ui/map-modal"
-import { SpiceLevel } from "@/types/messaging"
+import { SpiceLevel, PackagingOption } from "@/types/messaging"
 import { formatReadableDate, formatRelativeTime, getFreshnessLevel } from "@/lib/utils"
 import { getAuthToken } from "@/lib/api"
 import { calculateDistance } from "@/lib/geo" // Import geo util
@@ -21,7 +21,7 @@ interface FoodCardProps {
     description: string
     quantity: string
     location: string
-    latitude?: number // Add optional lat/lng
+    latitude?: number
     longitude?: number
     expiryDate: string
     status: "available" | "requested" | "taken" | "claimed"
@@ -35,6 +35,7 @@ interface FoodCardProps {
     cookedAt?: string
     rating: number | null
     review: string | null
+    packaging: PackagingOption | null
   }
   onUpdate?: () => void
   userLocation?: { lat: number; lng: number }
@@ -60,7 +61,11 @@ export function FoodCard({ post, onUpdate, userLocation }: FoodCardProps) {
   const displayRating = post.rating
   const displayReview = post.review
 
+  const isClaimed = post.status === "claimed" || post.status === "taken"
+  const isAvailable = post.status === "available" || post.status === "requested"
+
   const getStatusColor = (status: string) => {
+    if (isExpired) return "bg-red-500 text-white"
     switch (status) {
       case "available":
         return "bg-emerald-500 text-white"
@@ -68,9 +73,9 @@ export function FoodCard({ post, onUpdate, userLocation }: FoodCardProps) {
         return "bg-amber-500 text-white"
       case "taken":
       case "claimed":
-        return "bg-slate-500 text-white"
+        return "bg-zinc-500 text-white"
       default:
-        return ""
+        return "bg-zinc-500 text-white"
     }
   }
 
@@ -182,6 +187,8 @@ export function FoodCard({ post, onUpdate, userLocation }: FoodCardProps) {
         relative rounded-lg overflow-hidden bg-black
         transition-all duration-300 ease-out origin-center
         ${isHovered ? 'scale-110 z-50 shadow-2xl shadow-black/60' : 'scale-100'}
+        ${isClaimed ? 'opacity-60 grayscale-[0.5]' : ''}
+        ${isExpired ? 'border-2 border-red-500/50' : 'border border-white/5'}
       `}>
         {/* Image Section */}
         <div className="relative aspect-[16/9] overflow-hidden">
@@ -217,8 +224,14 @@ export function FoodCard({ post, onUpdate, userLocation }: FoodCardProps) {
               </Badge>
             )}
             <Badge className={`${getStatusColor(post.status)} font-semibold text-xs px-2 py-1`}>
-              {post.status.toUpperCase()}
+              {isExpired ? "EXPIRED" : post.status.toUpperCase()}
             </Badge>
+            {post.packaging === "bring_own_container" && (
+              <Badge className="bg-amber-500 text-black font-bold text-[10px] px-1.5 py-0.5 animate-pulse">
+                <Utensils className="h-3 w-3 mr-1" />
+                BYO CONTAINER
+              </Badge>
+            )}
             {post.spiceLevel && (
               <Badge className={`${getSpiceInfo(post.spiceLevel).color} font-bold text-[10px] px-1.5 py-0.5 border`}>
                 {getSpiceInfo(post.spiceLevel).emoji} {getSpiceInfo(post.spiceLevel).label.toUpperCase()}
@@ -380,7 +393,7 @@ export function FoodCard({ post, onUpdate, userLocation }: FoodCardProps) {
                   <Play className="h-3 w-3 mr-1" />
                   View Details
                 </Button>
-              ) : !isInactive ? (
+              ) : isAvailable && !isExpired ? (
                 <>
                   {post.status === "available" ? (
                     <Button
@@ -395,7 +408,7 @@ export function FoodCard({ post, onUpdate, userLocation }: FoodCardProps) {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 bg-gray-800 text-gray-400 border-gray-700 h-9 text-xs"
+                      className="flex-1 bg-zinc-800 text-zinc-400 border-zinc-700 h-9 text-xs"
                       disabled
                     >
                       Requested
@@ -412,8 +425,8 @@ export function FoodCard({ post, onUpdate, userLocation }: FoodCardProps) {
                   </Button>
                 </>
               ) : (
-                <div className="flex-1 py-2 text-center text-xs text-muted-foreground bg-muted/10 rounded-md border border-border/20">
-                  This item is no longer available
+                <div className="flex-1 py-2 text-center text-xs font-bold uppercase tracking-wider text-zinc-500 bg-zinc-900/50 rounded-md border border-white/5">
+                  {isExpired ? "Item Expired" : "Item Claimed"}
                 </div>
               )}
             </div>

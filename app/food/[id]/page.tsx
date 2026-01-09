@@ -23,8 +23,8 @@ import {
 import Link from "next/link"
 import { FeedbackModal } from "@/components/feed/feedback-modal"
 import { useWebSocket } from "@/hooks/use-websocket"
-import { SpiceLevel } from "@/types/messaging"
-import { formatReadableDate, formatRelativeTime, formatMonthYear } from "@/lib/utils"
+import { SpiceLevel, PackagingOption } from "@/types/messaging"
+import { formatReadableDate, formatRelativeTime, formatMonthYear, cn } from "@/lib/utils"
 
 interface FoodPost {
   id: string
@@ -46,6 +46,7 @@ interface FoodPost {
   review: string | null
   reviewedAt: string | null
   claimedByUserId: string | null
+  packaging: PackagingOption | null
   isClaimant?: boolean
 }
 
@@ -81,9 +82,9 @@ export default function FoodDetailPage() {
         ownerId: rawPost.ownerId || rawPost.userId || rawPost.user?.id || rawPost.author?.id,
         ownerJoinDate: rawPost.ownerJoinDate || rawPost.user?.joinDate || rawPost.author?.joinDate || rawPost.joinDate,
         claimedByUserId: rawPost.claimedByUserId || rawPost.claimedBy || rawPost.recipientId || rawPost.claimed_by_user_id || rawPost.claimedBy_Id || rawPost.claimantId || rawPost.claimant_id || rawPost.claimerId || rawPost.claimer_id || rawPost.recipient_id || rawPost.receiverId || rawPost.receiver_id || rawPost.takerId || rawPost.taker_id || rawPost.acceptedUserId || rawPost.accepted_user_id,
-        isClaimant: rawPost.isClaimant || rawPost.is_claimant || false,
         rating: rawPost.rating ?? rawPost.Rating ?? rawPost.star_rating ?? rawPost.starRating ?? rawPost.RatingValue,
-        review: rawPost.review ?? rawPost.Review ?? rawPost.comment ?? rawPost.Comment ?? rawPost.feedback_comment
+        review: rawPost.review ?? rawPost.Review ?? rawPost.comment ?? rawPost.Comment ?? rawPost.feedback_comment,
+        packaging: rawPost.packaging ?? null
       }
       console.log('👤 Normalized post data:', {
         postId: postData.id,
@@ -496,6 +497,24 @@ export default function FoodDetailPage() {
                     <div>
                       <p className="text-sm text-muted-foreground">Prepared At</p>
                       <p className="font-medium">{formatReadableDate(post.cookedAt)}</p>
+                    </div>
+                  </div>
+                )}
+
+                {post.packaging && (
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center h-5 w-5">
+                      {post.packaging === "container_provided" ? (
+                        <ChefHat className="h-5 w-5 text-primary" />
+                      ) : (
+                        <Utensils className="h-5 w-5 text-amber-500" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Packaging</p>
+                      <p className={cn("font-medium", post.packaging === "bring_own_container" && "text-amber-500 font-bold")}>
+                        {post.packaging === "container_provided" ? "Packaging Provided" : "Bring Your Own Container"}
+                      </p>
                     </div>
                   </div>
                 )}

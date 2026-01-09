@@ -112,6 +112,7 @@ export interface WSErrorMessage extends WSBaseMessage {
 
 // Feed broadcast types
 export type SpiceLevel = 'no_spicy' | 'medium_spicy' | 'spicy' | 'very_spicy';
+export type PackagingOption = 'container_provided' | 'bring_own_container';
 
 export interface FoodFeedItem {
     type: 'food'
@@ -121,7 +122,8 @@ export interface FoodFeedItem {
     quantity: string
     location: string
     expiryDate: string
-    status: 'available' | 'requested' | 'taken' | 'claimed' | 'expired'
+    status: 'available' | 'claimed' | 'expired'
+    packaging: PackagingOption | null
     ownerName: string
     ownerId: string
     imageUrls?: string[]
